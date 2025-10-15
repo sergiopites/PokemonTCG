@@ -1,0 +1,11 @@
+# ----------------------------
+# Etapa de build del cliente
+# ----------------------------
+FROM node:20-alpine AS client-build
+WORKDIR /app/client
+# Copiar package.json y package-lock.json
+COPY PokemonTCG.Client/package*.json ./
+RUN npm install
+COPY PokemonTCG.Client/ ./
+RUN npm run build
+
