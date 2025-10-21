@@ -1,12 +1,11 @@
-using Microsoft.AspNetCore.Mvc;
-using PokemonTCG.API.DTOs;
+﻿using Microsoft.AspNetCore.Mvc;
 using PokemonTCG.API.Responses;
 using PokemonTCG.API.Services;
 
 namespace PokemonTCG.API.Controllers
 {
     [ApiController]
-    [Route("/api/cards")]
+    [Route("/api/[controller]")]
     public class CardController : ControllerBase
     {
         private readonly ICardService _cardService;
@@ -16,7 +15,7 @@ namespace PokemonTCG.API.Controllers
             _cardService = cardService;
         }
 
-        [HttpGet("getcardsbynumber/{number}")]
+        [HttpGet("number/{number}")]
         public async Task<ActionResult<List<Models.Card>>> GetCardsByNumber(string number)
         {
             var cards = await _cardService.GetCardsByNumberAsync(number);
@@ -27,8 +26,8 @@ namespace PokemonTCG.API.Controllers
             return Ok(cards);
         }
 
-        [HttpGet("getcardsbycardid/{cardid}")]
-        public async Task<ActionResult<List<CardDetailResponse>>> GetCardsByCardId(string cardid)
+        [HttpGet("cardid/{cardid}")]
+        public async Task<ActionResult<List<CardDetailResponse>>> GetCardByCardId(string cardid)
         {
             var card = await _cardService.GetCardByCardIdAsync(cardid);
             if (card == null && !card.Any())
@@ -37,7 +36,7 @@ namespace PokemonTCG.API.Controllers
             }
             return Ok(card);
         }
-        [HttpGet("getcardsbysupertype/{supertype}")]
+        [HttpGet("supertype/{supertype}")]
         public async Task<ActionResult<List<Models.Card>>> GetCardsBySuperType(string supertype)
         {
             var cards = await _cardService.GetCardsBySuperTypeAsync(supertype);
@@ -48,18 +47,7 @@ namespace PokemonTCG.API.Controllers
             return Ok(cards);
         }
 
-        [HttpGet("getcardswithimagesbycardid/{cardid}")]
-        public async Task<ActionResult<List<Models.Card>>> GetCardsByCardImageId(string cardid)
-        {
-            var cards = await _cardService.GetCardImageByCardId(cardid);
-            if (cards == null || !cards.Any())
-            {
-                return NotFound();
-            }
-            return Ok(cards);
-        }
-
-        [HttpGet("getcardsbysetid/{setid}")]
+        [HttpGet("setid/{setid}")]
         public async Task<ActionResult<List<CardDetailResponse>>> GetCardsBySet(string setid)
         {
             var cards = await _cardService.GetCardsBySet(setid);
@@ -67,9 +55,36 @@ namespace PokemonTCG.API.Controllers
             {
                 return NotFound();
             }
-            
-            return Ok(cards);        
-        
+
+            return Ok(cards);
+        }
+        // 🔹 Endpoint general de búsqueda (multifiltro)
+        [HttpGet("search")]
+        public async Task<IActionResult> Search([FromQuery] string? name,[FromQuery] string? setId,[FromQuery] string? supertype,
+                                                [FromQuery] string? subtype,[FromQuery] string? type,[FromQuery] string? rarity,
+                                                [FromQuery] int page = 1,[FromQuery] int pageSize = 55)
+        {
+            var result = await _cardService.SearchCardsAsync(
+                name, setId, supertype, subtype, type, rarity, page, pageSize);
+
+            return Ok(result);
+        }
+
+        [HttpGet("filters")]
+        public async Task<IActionResult> GetFilters()
+        {
+            var rarities = await _cardService.GetDistinctRaritiesAsync();
+            var types = await _cardService.GetDistinctTypesAsync();
+            var supertypes = await _cardService.GetDistinctSupertypesAsync();
+            var subtypes = await _cardService.GetDistinctSubtypesAsync();
+
+            return Ok(new
+            {
+                Rarities = rarities,
+                Types = types,
+                Supertypes = supertypes,
+                Subtypes = subtypes
+            });
         }
         [HttpPost("addpokemoncards")]
         public async Task<IActionResult> SavePokemonCards(CancellationToken cancellationToken)

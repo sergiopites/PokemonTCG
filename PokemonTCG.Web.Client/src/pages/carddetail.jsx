@@ -10,13 +10,13 @@ export default function CardDetail() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [backImagePath, setBackImagePath] = useState("");
+    const API_URL = import.meta.env.VITE_API_URL;   
 
     useEffect(() => {
         const fetchCard = async () => {
             setLoading(true);
             try {
-                const res = await fetch(
-                    `http://localhost:5202/api/cards/getcardsbycardid/${cardId}`
+                const res = await fetch(`${API_URL}/api/card/cardid/${cardId}`
                 );
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
@@ -334,7 +334,7 @@ export default function CardDetail() {
                     <table width="100%" className="section">
                         <tr>
                             <td colSpan={2} style={{ textAlign: "center", verticalAlign: "middle" }}>
-                                <Link to={`/cards/${card.setId}`}>
+                                <Link to={`/card/${card.setId}`}>
                                     <p>⬅️ Back</p>
                                 </Link>
                             </td><td style={{ textAlign: "center", verticalAlign: "middle" }} >

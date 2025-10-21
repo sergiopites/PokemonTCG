@@ -5,6 +5,7 @@ using PokemonTCG.API.Services;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
 // --------------------
 // Configuración de Serilog
 // --------------------
@@ -30,14 +31,20 @@ builder.Host.UseSerilog();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Habilitar CORS
+// ✅ CORS para localhost y 127.0.0.1
+var corsPolicy = "AllowFrontend";
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
+    options.AddPolicy(corsPolicy, policy =>
     {
-        policy.WithOrigins("http://localhost:5173") // URL de tu front React
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy
+            .WithOrigins(
+                "http://localhost:5173",
+                "http://127.0.0.1:5173"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -58,15 +65,11 @@ builder.Services.AddScoped<ITCGPlayerService, TCGPlayerService>();
 builder.Services.AddScoped<IAncientTraitRepository, AncientTraitRepository>();
 builder.Services.AddScoped<IAncientTraitService, AncientTraitService>();
 builder.Services.AddScoped<IAttackService, AttackService>();
-builder.Services.AddScoped<IAttackRepository, AttackRepository>();
 builder.Services.AddScoped<IAbilityService, AbilityService>();
-builder.Services.AddScoped<IAbilityRepository, AbilityRepository>();
 builder.Services.AddScoped<IResistanceService, ResistanceService>();
 builder.Services.AddScoped<IPrinterService, PrinterService>();
 builder.Services.AddScoped<IResistanceRepository, ResistanceRepository>();
 builder.Services.AddScoped<ISetImageRepository, SetImageRepository>();
-//builder.Services.AddScoped<ISetImageService, SetImageService>();
-
 
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();
@@ -84,10 +87,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// ✅ IMPORTANTE: CORS va ANTES de redirección HTTPS y autorización
+app.UseCors(corsPolicy);
 
-// 🔹 aplicar CORS ANTES de MapControllers
-app.UseCors("AllowFrontend");
+app.UseHttpsRedirection();
 
 app.UseAuthorization();
 

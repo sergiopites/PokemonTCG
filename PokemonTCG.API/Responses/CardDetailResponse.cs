@@ -1,4 +1,6 @@
-﻿namespace PokemonTCG.API.Responses
+﻿using PokemonTCG.API.DTOs;
+
+namespace PokemonTCG.API.Responses
 {
     public class CardDetailResponse
     {
@@ -32,5 +34,10 @@
         public string SetSerie { get; set; }
         public string Ptcgocode { get; set; }
         public string ReleaseDate { get; set; }
+
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public int TotalCount { get; set; }
+        public IEnumerable<CardDetailDTO> Cards { get; set; } = new List<CardDetailDTO>();
     }
 }

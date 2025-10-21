@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 // src/pages/Home.jsx
 export default function Home() {
     return (
-        <div className="page-content">
+        //<div className="page-content">
             <div
                 style={{
                     height: "100vh",
@@ -53,7 +53,7 @@ export default function Home() {
                         Explore cards, build decks, and collect accessories.
                     </strong>
                 </div>
-            </div>
+            {/*</div>*/}
         //</div>
     );
 }

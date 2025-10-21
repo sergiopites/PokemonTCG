@@ -1,4 +1,6 @@
-﻿using PokemonTCG.API.DTOs;
+﻿using Microsoft.EntityFrameworkCore;
+using PokemonTCG.API.DTOs;
+using PokemonTCG.API.Helpers;
 using PokemonTCG.API.Models;
 using PokemonTCG.API.Repositories;
 using PokemonTCG.API.Responses;
@@ -162,18 +164,6 @@ namespace PokemonTCG.API.Services
             {
                 _logger.LogError(ex.Message);
                 return new List<CardDetailResponse>();
-            }
-        }
-        public async Task<List<dynamic>> GetCardImageByCardId(string cardId)
-        {
-            try
-            {
-                return await _cardRepository.GetCardImageByCardId(cardId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex.Message);
-                return new List<dynamic>();
             }
         }
         public async Task SaveCardsAsync(CancellationToken cancellationToken)
@@ -408,6 +398,106 @@ namespace PokemonTCG.API.Services
             {
                 _logger.LogError($"Error saving cards: {ex.Message}");
             }
+        }
+        public async Task<PagedResult<CardDetailDTO>> SearchCardsAsync(string? name = null,string? setId = null, string? supertype = null,
+                                                                        string? subtype = null, string? type = null,string? rarity = null,
+                                                                        int page = 1, int pageSize = 55)
+        {
+            return await _cardRepository.SearchCardsAsync(name, setId, supertype, subtype, type, rarity, page, pageSize);
+        }
+        public async Task<CardDetailResponse> GetCardsByRarityAsync(string rarity, int page = 1, int pageSize = 55)
+        {
+            var result = await SearchCardsAsync(rarity: rarity, page: page, pageSize: pageSize);
+
+            return new CardDetailResponse
+            {
+                Page = result.Page,
+                PageSize = result.PageSize,
+                TotalCount = result.TotalCount,
+                Cards = result.Items
+            };
+        }
+        public async Task<CardDetailResponse> GetCardsByTypeAsync(string type, int page = 1, int pageSize = 55)
+        {
+            var result = await SearchCardsAsync(type: type, page: page, pageSize: pageSize);
+
+            return new CardDetailResponse
+            {
+                Page = result.Page,
+                PageSize = result.PageSize,
+                TotalCount = result.TotalCount,
+                Cards = result.Items
+            };
+        }
+        public async Task<CardDetailResponse> GetCardsBySupertypeAsync(string supertype, int page = 1, int pageSize = 55)
+        {
+            var result = await SearchCardsAsync(supertype: supertype, page: page, pageSize: pageSize);
+
+            return new CardDetailResponse
+            {
+                Page = result.Page,
+                PageSize = result.PageSize,
+                TotalCount = result.TotalCount,
+                Cards = result.Items
+            };
+        }
+        public async Task<CardDetailResponse> GetCardsBySubtypeAsync(string subtype, int page = 1, int pageSize = 55)
+        {
+            var result = await SearchCardsAsync(subtype: subtype, page: page, pageSize: pageSize);
+
+            return new CardDetailResponse
+            {
+                Page = result.Page,
+                PageSize = result.PageSize,
+                TotalCount = result.TotalCount,
+                Cards = result.Items
+            };
+        }
+        public async Task<CardDetailResponse> GetCardsBySetAsync(string setId, int page = 1, int pageSize = 55)
+        {
+            var result = await SearchCardsAsync(setId: setId, page: page, pageSize: pageSize);
+
+            return new CardDetailResponse
+            {
+                Page = result.Page,
+                PageSize = result.PageSize,
+                TotalCount = result.TotalCount,
+                Cards = result.Items
+            };
+        }
+
+        public async Task<CardDetailResponse> GetCardsByNameAsync(string name, int page = 1, int pageSize = 55)
+        {
+            var result = await SearchCardsAsync(name: name, page: page, pageSize: pageSize);
+
+            return new CardDetailResponse
+            {
+                Page = result.Page,
+                PageSize = result.PageSize,
+                TotalCount = result.TotalCount,
+                Cards = result.Items
+            };
+        }
+
+        public async Task<List<CardDetailResponse>> GetDistinctTypesAsync()
+        { 
+            var distinctTypes = await _cardRepository.GetDistinctTypesAsync();
+            return distinctTypes.Select(type => new CardDetailResponse { Type = type }).ToList();
+        }
+        public async Task<List<CardDetailResponse>> GetDistinctRaritiesAsync()
+        {
+            var distinctRarities = await _cardRepository.GetDistinctRaritiesAsync();
+            return distinctRarities.Select(rarity => new CardDetailResponse { Rarity = rarity }).ToList();
+        }
+        public async Task<List<CardDetailResponse>> GetDistinctSubtypesAsync()
+        {
+            var distinctSubtypes = await _cardRepository.GetDistinctSubtypesAsync();
+            return distinctSubtypes.Select(subtypes => new CardDetailResponse { Subtype = subtypes }).ToList();
+        }
+        public async Task<List<CardDetailResponse>> GetDistinctSupertypesAsync()
+        {
+            var distinctSupertypes = await _cardRepository.GetDistinctSupertypesAsync();
+            return distinctSupertypes.Select(supertypes => new CardDetailResponse { Supertype = supertypes }).ToList();
         }
 
         public async Task<List<PokemonCard>> GetPokemonCardBySetIdAsync(string idPokemonSet)

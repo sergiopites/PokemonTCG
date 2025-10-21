@@ -8,12 +8,15 @@ namespace PokemonTCG.API.Models
     {
         [Key]
         [Required]
-        public string CardId { get; set; }        
+        public string CardId { get; set; }
+        [MaxLength(100)]
         public string? Name { get; set; }
+        [MaxLength(30)]
         public string? SuperType { get; set; }
         public string? SubTypes { get; set; }
         public string? Level { get; set; }
         public int? Hp { get; set; }
+        [MaxLength(100)]
         public string? Types { get; set; }
         public string? EvolvesFrom { get; set; }
         public ICollection<Ability> Abilities { get; set; }
@@ -28,6 +31,7 @@ namespace PokemonTCG.API.Models
         public Deck? Deck { get; set; }
         public string? Number { get; set; }
         public string? Artist { get; set; }
+        [MaxLength(30)]
         public string? Rarity { get; set; }
         public string? NationalPokedexNumbers { get; set; }
         public int? LegalitiesId { get; set; }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PokemonTCG.API.Data;
 using PokemonTCG.API.DTOs;
+using PokemonTCG.API.Helpers;
 using PokemonTCG.API.Models;
 
 namespace PokemonTCG.API.Repositories
@@ -121,26 +122,7 @@ namespace PokemonTCG.API.Repositories
                 return new List<Models.Card>();
             }
         }
-        public async Task<List<dynamic>> GetCardImageByCardId(string cardId)
-        {
-            try
-            {
-                var cards = await _context.Cards.Include(c => c.CardImage).Where(c => c.CardId == cardId).Select(c => new
-                {
-                    c.Name,
-                    Small = c.CardImage.Small,
-                    Large = c.CardImage.Large
-                })
-              .ToListAsync<dynamic>();
 
-                return cards;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error retrieving cards by Images:'{cardId}': {ex.Message}");
-                return new List<dynamic>();
-            }
-        }
         public async Task<List<CardDetailDTO>> GetCardsBySet(string setId)
         {
             try
@@ -186,7 +168,106 @@ namespace PokemonTCG.API.Repositories
                 return new List<CardDetailDTO>();
             }
         }
+        public async Task<PagedResult<CardDetailDTO>> SearchCardsAsync(string? name = null, string? setCode = null,
+                                                                       string? supertype = null, string? subtype = null, string? type = null,
+                                                                       string? rarity = null, int page = 1, int pageSize = 55)
+        {
+            var query = _context.Cards
+                .AsNoTracking()
+                .Include(c => c.Set)
+                .Include(c => c.CardImage)
+                .AsQueryable();
 
+            if (!string.IsNullOrWhiteSpace(name))
+                query = query.Where(c => EF.Functions.Like(c.Name, $"%{name}%"));
+
+            if (!string.IsNullOrWhiteSpace(setCode))
+                query = query.Where(c => c.Set.SetId == setCode);
+
+            if (!string.IsNullOrWhiteSpace(supertype))
+                query = query.Where(c => c.SuperType == supertype);
+
+            if (!string.IsNullOrWhiteSpace(subtype))
+                query = query.Where(c => c.SubTypes.Contains(subtype));
+
+            if (!string.IsNullOrWhiteSpace(type))
+                query = query.Where(c => c.Types.Contains(type));
+
+            if (!string.IsNullOrWhiteSpace(rarity))
+                query = query.Where(c => c.Rarity == rarity);
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderBy(c => c.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(c => new CardDetailDTO
+                {
+                    CardId = c.CardId,
+                    Name = c.Name,
+                    SetName = c.Set.Name,
+                    Ptcgocode = c.Set.PtcgoCode,
+                    Supertype = c.SuperType,
+                    Subtype = c.SubTypes,
+                    Type = c.Types,
+                    Rarity = c.Rarity,
+                    ImageLarge = c.CardImage != null ? c.CardImage.Large : null
+                })
+                .ToListAsync();
+
+            return new PagedResult<CardDetailDTO>
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                Items = items
+            };
+        }
+        public async Task<IEnumerable<string>> GetDistinctRaritiesAsync()
+        {
+            return await _context.Cards
+                .Where(c => c.Rarity != null && c.Rarity != "")
+                .Select(c => c.Rarity!)
+                .Distinct()
+                .OrderBy(r => r)
+                .ToListAsync();
+        }
+
+        // 🔹 Obtener tipos únicos (Types puede ser lista separada por comas)
+        public async Task<IEnumerable<string>> GetDistinctTypesAsync()
+        {
+            return await _context.Cards
+                .Where(c => c.Types != null && c.Types != "")
+                .Select(c => c.Types!)
+                .Distinct()
+                .OrderBy(t => t)
+                .ToListAsync();
+        }
+
+        // 🔹 Obtener supertypes únicos
+        public async Task<IEnumerable<string>> GetDistinctSupertypesAsync()
+        {
+            return await _context.Cards
+                .Where(c => c.SuperType != null && c.SuperType != "")
+                .Select(c => c.SuperType!)
+                .Distinct()
+                .OrderBy(s => s)
+                .ToListAsync();
+        }
+
+        // 🔹 Obtener subtypes únicos (pueden venir como lista)
+        public async Task<IEnumerable<string>> GetDistinctSubtypesAsync()
+        {
+            return (await _context.Cards
+                .Where(c => !string.IsNullOrEmpty(c.SubTypes))
+                .Select(c => c.SubTypes!)
+                .ToListAsync())
+                .SelectMany(subtypes => subtypes.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                .Distinct()
+                .OrderBy(s => s)
+                .ToList();
+        }
         public async Task<Card> SaveCardAsync(Card card, CancellationToken cancellationToken)
         {
             var existingCard = await _context.Cards

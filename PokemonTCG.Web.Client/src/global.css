@@ -118,13 +118,13 @@ footer {
     gap: 2rem;
 }
 /* Layout principal */
-.page-content {
+/*.page-content {*/
     /*background-image: url('images/pokemontcgPokeball.png');*/
     /*background: linear-gradient(180deg, #0b0b0b, #1a1a1a);*/
-    color: white;
+    /*color: white;
     min-height: 100vh;
     padding: 20px;
-}
+}*/
 
 /* Contenedor de la lista */
 .cards-list {
@@ -200,11 +200,11 @@ footer {
 }
 
 /* Fondo igual que AllSets */
-.page-content {
-    /*background-image: url("/images/cardsBackground2.jpg") !important;*/
-    background-image: url("/images/cardsBackground3.jpg");
+.page-content {    
+    /*background-image: url("/images/cardsBackground3.jpg");*/
+    background-color:lightskyblue;
     background-repeat: repeat;
-    background-size:initial;
+    background-size:cover;
     background-position:top;
     min-height: 100vh;
     padding: 20px;
@@ -305,7 +305,11 @@ footer {
     border-radius: 8px;
     transition: transform 0.1s;
 }
-
+.card-item-search {
+    position: relative;    
+    border-radius: 8px;
+    transition: transform 0.1s;
+}
 /* ------------------- ITEM ------------------- */
 .set-item {
     background: #fff;
@@ -333,9 +337,10 @@ footer {
     z-index: 10; /* se pone por encima del resto */
   /*  box-shadow: 0 8px 16px rgba(0,0,0,0.5);*/
 }
-/*.card-item:hover {
-    transform: scale(1.05);
-}*/
+.card-item-search:hover {
+    transform: scale(2.0);
+    z-index: 10; 
+}
 
 /* ---------------------------------  Image  --------------------------------- 
  1️⃣ Sin altura fija → la imagen se ajusta a su contenedor 

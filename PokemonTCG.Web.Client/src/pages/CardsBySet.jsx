@@ -8,13 +8,14 @@ export default function CardsBySet() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
+    const API_URL = import.meta.env.VITE_API_URL;
+
     useEffect(() => {
         const fetchCards = async () => {
             setLoading(true);
             try {
-                const res = await fetch(
-                    `http://localhost:5202/api/cards/getcardsbysetid/${setId}`
-                );
+                console.log(`URL Completa:` + `${API_URL}/api/card/setid/${setId}`);
+                const res = await fetch(`${API_URL}/api/card/setid/${setId}`);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
                 setCards(data);
@@ -98,10 +99,10 @@ export default function CardsBySet() {
                         </tr>
                     </tbody>
                 </table>
-                <div className="card-grid">                
+                <div className="card-grid">
                     {cards.map((card) => (
                         <div key={card.cardId} className="card-item">
-                            <Link to={`/cards/${setId}/card/${card.cardId}`}>
+                            <Link to={`/card/${setId}/${card.cardId}`}>
                                 <img
                                     src={card.imageLarge}
                                     alt={card.name}
@@ -109,9 +110,8 @@ export default function CardsBySet() {
                                 />
                             </Link>
                         </div>
-                    ))}                    
-                    </div>
-                    
+                    ))}
+                </div>
             </div>
         </div>
     );

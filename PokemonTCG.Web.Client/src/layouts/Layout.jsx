@@ -1,6 +1,6 @@
 ﻿import React, { useState } from "react";
 import { Link, Outlet } from "react-router-dom";
-import { Layers, Star, Save, Package, Info, Box } from "lucide-react";
+import { Layers, Star, Save, Package, Info } from "lucide-react";
 
 export default function TableMenu() {
     const [openMenu, setOpenMenu] = useState(null);
@@ -76,13 +76,11 @@ export default function TableMenu() {
                                     }}
                                 >
                                     <li className="px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
-                                        {/*<Save size={16} color="#3b82f6" />*/}
                                         <Link to="/SaveCards" style={{ color: "#1d4ed8", fontWeight: "500" }}>
                                             Save/Update cards
                                         </Link>
                                     </li>
                                     <li className="px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
-                                        {/*<Star size={16} color="#facc15" />*/}
                                         <Link to="/card/favorites" style={{ color: "#ca8a04", fontWeight: "500" }}>
                                             Favorites
                                         </Link>
@@ -123,13 +121,11 @@ export default function TableMenu() {
                                     }}
                                 >
                                     <li className="px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
-                                        {/*<Save size={16} color="#9333ea" />*/}
                                         <Link to="/SaveSets" style={{ color: "#7e22ce", fontWeight: "500" }}>
                                             Save/Update sets
                                         </Link>
                                     </li>
                                     <li className="px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
-                                        {/*<Layers size={16} color="#a855f7" />*/}
                                         <Link to="/allsets" style={{ color: "#6d28d9", fontWeight: "500" }}>
                                             All sets
                                         </Link>
@@ -138,23 +134,47 @@ export default function TableMenu() {
                             )}
                         </td>
 
-                        {/* Otros botones */}
+                        {/* Decks */}
                         <td
                             style={{
                                 textAlign: "center",
                                 verticalAlign: "middle",
+                                position: "relative",
                                 backgroundColor: "#f8fafc",
                                 fontWeight: "bold",
+                                cursor: "pointer",
+                                color: "#059669",
                             }}
+                            onClick={() => toggleMenu("decks")}
                         >
-                            <Link
-                                to="/decks"
-                                className="hover:underline"
-                                style={{ color: "#16a34a", display: "inline-flex", alignItems: "center", gap: "4px" }}
-                            >
-                                <Box size={16} color="#22c55e" /> Decks
-                            </Link>
+                            <span>🧩 Decks ▾</span>
+                            {openMenu === "decks" && (
+                                <ul
+                                    style={{
+                                        position: "absolute",
+                                        top: "100%",
+                                        left: "50%",
+                                        transform: "translateX(-50%)",
+                                        backgroundColor: "#ffffff",
+                                        listStyle: "none",
+                                        padding: "0",
+                                        margin: "6px 0 0",
+                                        boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
+                                        borderRadius: "10px",
+                                        width: "180px",
+                                        zIndex: 1000,
+                                    }}
+                                >
+                                    <li className="px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
+                                        <Link to="/CreateDeck" style={{ color: "#059669", fontWeight: "500" }}>
+                                            Create decks
+                                        </Link>
+                                    </li>
+                                </ul>
+                            )}
                         </td>
+
+                        {/* Accessories */}
                         <td
                             style={{
                                 textAlign: "center",
@@ -171,6 +191,8 @@ export default function TableMenu() {
                                 <Package size={16} color="#ef4444" /> Accessories
                             </Link>
                         </td>
+
+                        {/* About */}
                         <td
                             style={{
                                 textAlign: "center",

@@ -88,10 +88,12 @@ namespace PokemonTCG.API.Repositories
                     .FirstOrDefaultAsync(s => s.SetId == set.SetId, cancellationToken);
 
                 if (existing != null)
-                    return existing; // O su Id
+                    return existing;
 
                 _context.Sets.Add(set);
+                
                 await _context.SaveChangesAsync();
+                _logger.LogInformation($"Set: {set.SetId} was updated successfully.");
 
                 return set;
             }

@@ -7,7 +7,7 @@ using PokemonTCG.API.Services;
 namespace PokemonTCG.API.Controllers
 {
     [ApiController]
-    [Route("/api/sets")]
+    [Route("/api/[controller]")]
     public class SetController : ControllerBase
     {
         private readonly  ISetService _setService;
@@ -16,7 +16,7 @@ namespace PokemonTCG.API.Controllers
         {
             _setService = setService;
         }
-        [HttpPost("addset")]
+        [HttpPost("create")]
         public async Task<IActionResult> SaveSet(CancellationToken cancellationToken)
         {
             await _setService.SaveSetAsync(cancellationToken);
@@ -24,7 +24,7 @@ namespace PokemonTCG.API.Controllers
         }
 
 
-        [HttpGet("getsets")]
+        [HttpGet("all")]
         public async Task<ActionResult<List<SetDetailResponse>>> GetAllSets()
         {
             var cards = await _setService.GetAllSetsAsync();
@@ -34,7 +34,7 @@ namespace PokemonTCG.API.Controllers
             }
             return Ok(cards);
         }
-        [HttpGet("getsets/{name}")]
+        [HttpGet("name/{name}")]
         public async Task<ActionResult<List<Set>>> GetSetByName(string name)
         {
             var sets = await _setService.GetSetByNameAsync(name);
@@ -44,7 +44,7 @@ namespace PokemonTCG.API.Controllers
             }
             return Ok(sets);
         }
-        [HttpGet("getsets/{id}")]
+        [HttpGet("id/{id}")]
         public async Task<ActionResult<List<Set>>> GetSetById(string id)
         {
             var sets = await _setService.GetSetByIdAsync(id);
@@ -54,7 +54,7 @@ namespace PokemonTCG.API.Controllers
             }
             return Ok(sets);
         }
-        [HttpGet("getsets/{serie}")]
+        [HttpGet("serie/{serie}")]
         public async Task<ActionResult<List<Set>>> GetSetBySerie(string serie)
         {
             var sets = await _setService.GetSetBySerieAsync(serie);

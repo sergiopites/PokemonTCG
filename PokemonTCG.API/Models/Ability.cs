@@ -11,7 +11,6 @@ namespace PokemonTCG.API.Models
         public string? Name { get; set; }
         public string? Text { get; set; }
         public string? Type { get; set; }
-
         public string? CardId { get; set; }
         public Card Card { get; set; }
     }
