@@ -24,7 +24,7 @@ namespace PokemonTCG.API.Data
         public DbSet<TCGPlayer> TCGPlayers { get; set; }
         public DbSet<TCGPlayerPrice> TCGPlayerPrices { get; set; }
         public DbSet<Deck> Decks { get; set; }
-
+        public DbSet<DeckCard> DeckCards { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -168,10 +168,26 @@ namespace PokemonTCG.API.Data
             // ---------------- DECK ----------------
 
             modelBuilder.Entity<Deck>()
-                        .HasMany(d => d.Cards)
+                        .HasMany(d => d.DeckCards)
                         .WithOne(c => c.Deck)
                         .HasForeignKey(c => c.DeckId)
                         .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<DeckCard>(entity =>
+            {
+                entity.HasKey(dc => dc.DeckCardId);
+
+                entity.HasOne(dc => dc.Deck)
+                      .WithMany(d => d.DeckCards)
+                      .HasForeignKey(dc => dc.DeckId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(dc => dc.Card)
+                      .WithMany(c => c.DeckCards)
+                      .HasForeignKey(dc => dc.CardId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
         }
     }
 }

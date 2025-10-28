@@ -27,8 +27,6 @@ namespace PokemonTCG.API.Models
         public int? ConvertedRetreatCost { get; set; }
         public string SetId { get; set; }
         public Set Set { get; set; }
-        public int? DeckId { get; set; }       
-        public Deck? Deck { get; set; }
         public string? Number { get; set; }
         public string? Artist { get; set; }
         [MaxLength(30)]
@@ -46,5 +44,6 @@ namespace PokemonTCG.API.Models
         public string? RegulationMark { get; set; }
         [Required]
         public string ExternalId { get; set; }  // ID de la API                
+        public ICollection<DeckCard> DeckCards { get; set; } = new List<DeckCard>();
     }
 }

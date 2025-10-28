@@ -18,7 +18,7 @@ namespace PokemonTCG.API.Services
     public class CardService : ICardService
     {
         private readonly ICardRepository _cardRepository;
-        private readonly ILogger<CardService> _logger;
+        private readonly ILogger<ICardService> _logger;
         private readonly ISetRepository _setRepository;
         private readonly ICardImageRepository _cardImageRepository;
         private readonly ILegalityRepository _legalityRepository;

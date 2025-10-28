@@ -70,6 +70,8 @@ builder.Services.AddScoped<IResistanceService, ResistanceService>();
 builder.Services.AddScoped<IPrinterService, PrinterService>();
 builder.Services.AddScoped<IResistanceRepository, ResistanceRepository>();
 builder.Services.AddScoped<ISetImageRepository, SetImageRepository>();
+builder.Services.AddScoped<IDeckRepository, DeckRepository>();
+builder.Services.AddScoped<IDeckService, DeckService>();
 
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();

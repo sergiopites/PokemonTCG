@@ -98,7 +98,7 @@ export default function CardDetail() {
                     <table width="100%">
                         <tbody>
                             <tr>
-                                <td colSpan={2} width="50%" style={{ textAlign: "center", verticalAlign: "middle" }}>                                
+                                <td colSpan={3} width="50%" style={{ textAlign: "center", verticalAlign: "middle" }}>                                
                                     {card.imageLarge ? (
                                         <img
                                             src={card.imageLarge}
@@ -112,7 +112,7 @@ export default function CardDetail() {
                                 </td>
                             </tr>
                             <tr>
-                                <td width="50%" style={{ textAlign: "right", verticalAlign: "middle" }}>
+                                <td  width="50%" style={{ textAlign: "right", verticalAlign: "center" }}>
                                     {card.setSymbol && (
                                         <img
                                             src={card.setSymbol}
@@ -122,7 +122,8 @@ export default function CardDetail() {
                                         />
                                     )}
                                 </td>
-                                <td style={{ textAlign: "left", verticalAlign: "top" }}>                                
+                                <td></td>
+                                <td style={{ textAlign: "left", verticalAlign: "center" }}>                                
                                     {card.number && (
                                         <span> {card.number}/{card.setTotal}</span>
                                     )}
@@ -130,9 +131,9 @@ export default function CardDetail() {
                             </tr>
                             <tr>
                                 <td
-                                    colSpan={2}
+                                    colSpan={3}
                                     style={{ textAlign: "center", verticalAlign: "middle", paddingTop: "5px" }}
-                                >
+                                >                               
                                     {card.artist && (
                                         <span> Illustration: {card.artist}</span>
                                     )}
