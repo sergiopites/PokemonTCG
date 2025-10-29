@@ -111,23 +111,21 @@ namespace PokemonTCG.API.Data
             // ---------------- CARD MARKET PRICE ----------------
             modelBuilder.Entity<CardMarketPrice>(entity =>
             {
-                modelBuilder.Entity<CardMarketPrice>(entity =>
-                {
-                    entity.HasKey(cmp => cmp.CardMarketId);
-                    entity.Property(p => p.AverageSellPrice).HasColumnType("decimal(18,2)");
-                    entity.Property(p => p.LowPrice).HasColumnType("decimal(18,2)");
-                    entity.Property(p => p.TrendPrice).HasColumnType("decimal(18,2)");
-                    entity.Property(p => p.ReverseHoloLow).HasColumnType("decimal(18,2)");
-                    entity.Property(p => p.ReverseHoloTrend).HasColumnType("decimal(18,2)");
-                    entity.Property(p => p.LowPriceExPlus).HasColumnType("decimal(18,2)");
-                    entity.Property(p => p.AverageDay).HasColumnType("decimal(18,2)");
-                    entity.Property(p => p.AverageWeek).HasColumnType("decimal(18,2)");
-                    entity.Property(p => p.AverageMonth).HasColumnType("decimal(18,2)");
-                    entity.Property(p => p.AverageDayReverseHolo).HasColumnType("decimal(18,2)");
-                    entity.Property(p => p.AverageWeekReverseHolo).HasColumnType("decimal(18,2)");
-                    entity.Property(p => p.AverageMonthReverseHolo).HasColumnType("decimal(18,2)");
-                });
+                entity.HasKey(cmp => cmp.CardMarketId);
+                entity.Property(p => p.AverageSellPrice).HasColumnType("decimal(18,2)");
+                entity.Property(p => p.LowPrice).HasColumnType("decimal(18,2)");
+                entity.Property(p => p.TrendPrice).HasColumnType("decimal(18,2)");
+                entity.Property(p => p.ReverseHoloLow).HasColumnType("decimal(18,2)");
+                entity.Property(p => p.ReverseHoloTrend).HasColumnType("decimal(18,2)");
+                entity.Property(p => p.LowPriceExPlus).HasColumnType("decimal(18,2)");
+                entity.Property(p => p.AverageDay).HasColumnType("decimal(18,2)");
+                entity.Property(p => p.AverageWeek).HasColumnType("decimal(18,2)");
+                entity.Property(p => p.AverageMonth).HasColumnType("decimal(18,2)");
+                entity.Property(p => p.AverageDayReverseHolo).HasColumnType("decimal(18,2)");
+                entity.Property(p => p.AverageWeekReverseHolo).HasColumnType("decimal(18,2)");
+                entity.Property(p => p.AverageMonthReverseHolo).HasColumnType("decimal(18,2)");
             });
+
 
             // ---------------- TCGPLAYER ----------------
             modelBuilder.Entity<TCGPlayer>(entity =>
@@ -168,19 +166,15 @@ namespace PokemonTCG.API.Data
             // ---------------- DECK ----------------
 
             modelBuilder.Entity<Deck>()
-                        .HasMany(d => d.DeckCards)
-                        .WithOne(c => c.Deck)
-                        .HasForeignKey(c => c.DeckId)
-                        .OnDelete(DeleteBehavior.SetNull);
+                .HasMany(d => d.DeckCards)
+                .WithOne(dc => dc.Deck)
+                .HasForeignKey(dc => dc.DeckId)
+                .OnDelete(DeleteBehavior.Cascade);
+
 
             modelBuilder.Entity<DeckCard>(entity =>
             {
                 entity.HasKey(dc => dc.DeckCardId);
-
-                entity.HasOne(dc => dc.Deck)
-                      .WithMany(d => d.DeckCards)
-                      .HasForeignKey(dc => dc.DeckId)
-                      .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(dc => dc.Card)
                       .WithMany(c => c.DeckCards)

@@ -1,17 +1,22 @@
-﻿import React, { useState } from "react";
+﻿/* eslint-disable react/prop-types */
+import React, { useState } from "react";
 
 export default function SaveSets() {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
+    const API_URL = import.meta.env.VITE_API_URL || "";
 
     const handleSave = async () => {
         setLoading(true);
         setMessage("");
         try {
-            const response = await fetch("http://localhost:5202/api/sets/addset", {
-                method: "POST"
+            const url = `${API_URL}/api/set/create`;
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                }
             });
-
 
             console.log("Response status:", response.status);
 
@@ -39,7 +44,8 @@ export default function SaveSets() {
                         </td>
                     </tr>
                     <tr>
-                        <td>Sync your database with the Pokémon TCG world!
+                        <td>
+                            Sync your database with the Pokémon TCG world!
                             When you press the button, the latest sets will be fetched and saved from the official Pokémon TCG API.
                         </td>
                     </tr>
