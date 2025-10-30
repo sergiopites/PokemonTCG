@@ -168,7 +168,7 @@ namespace PokemonTCG.API.Repositories
                 return new List<CardDetailDTO>();
             }
         }
-        public async Task<PagedResult<CardDetailDTO>> SearchCardsAsync(string? name = null, string? setCode = null,
+        public async Task<PagedResult<CardDetailDTO>> SearchCardsAsync(string? name = null, string? setId = null, string? ptcgoCode = null,
                                                                        string? supertype = null, string? subtype = null, string? type = null,
                                                                        string? rarity = null, int page = 1, int pageSize = 55)
         {
@@ -181,8 +181,11 @@ namespace PokemonTCG.API.Repositories
             if (!string.IsNullOrWhiteSpace(name))
                 query = query.Where(c => EF.Functions.Like(c.Name, $"%{name}%"));
 
-            if (!string.IsNullOrWhiteSpace(setCode))
-                query = query.Where(c => c.Set.SetId == setCode);
+            if (!string.IsNullOrWhiteSpace(setId))
+                query = query.Where(c => c.Set.SetId == setId);
+
+            if (!string.IsNullOrWhiteSpace(ptcgoCode))
+                query = query.Where(c => c.Set.PtcgoCode == ptcgoCode);
 
             if (!string.IsNullOrWhiteSpace(supertype))
                 query = query.Where(c => c.SuperType == supertype);
@@ -210,6 +213,7 @@ namespace PokemonTCG.API.Repositories
                     Ptcgocode = c.Set.PtcgoCode,
                     Supertype = c.SuperType,
                     Subtype = c.SubTypes,
+                    SetId = c.Set.SetId,
                     Type = c.Types,
                     Rarity = c.Rarity,
                     ImageLarge = c.CardImage != null ? c.CardImage.Large : null

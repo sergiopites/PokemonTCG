@@ -10,8 +10,9 @@ namespace PokemonTCG.API.Repositories
         Task<List<CardDetailDTO>> GetCardsByCardIdAsync(string id);
         Task<List<Card>> GetCardsBySuperTypeAsync(string supertype);
         Task<List<CardDetailDTO>> GetCardsBySet(string setId);
-        Task<PagedResult<CardDetailDTO>> SearchCardsAsync(string? name = null, string? setId = null, string? supertype = null, string? subtype = null, string? type = null,
-                                                          string? rarity = null, int page = 1, int pageSize = 50);
+        Task<PagedResult<CardDetailDTO>> SearchCardsAsync(string? name = null, string? setId = null, string? ptcgoCode = null,
+                                                                       string? supertype = null, string? subtype = null, string? type = null,
+                                                                       string? rarity = null, int page = 1, int pageSize = 55);
         Task<Card> SaveCardAsync(Card card, CancellationToken cancellationToken);
         Task<IEnumerable<string>> GetDistinctRaritiesAsync();
         Task<IEnumerable<string>> GetDistinctTypesAsync();

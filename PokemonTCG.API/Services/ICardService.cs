@@ -16,9 +16,9 @@ namespace PokemonTCG.API.Services
         Task<CardDetailResponse> GetCardsBySubtypeAsync(string subtype, int page = 1, int pageSize = 55);
         Task<CardDetailResponse> GetCardsBySetAsync(string setCode, int page = 1, int pageSize = 55);
         Task<CardDetailResponse> GetCardsByNameAsync(string name, int page = 1, int pageSize = 55);
-        Task<PagedResult<CardDetailDTO>> SearchCardsAsync(string? name = null, string? setId = null, string? supertype = null,
-                                                                        string? subtype = null, string? type = null, string? rarity = null,
-                                                                        int page = 1, int pageSize = 55);
+        Task<PagedResult<CardDetailDTO>> SearchCardsAsync(string? name = null, string? setId = null, string? ptcgoCode = null,
+                                                                       string? supertype = null, string? subtype = null, string? type = null,
+                                                                       string? rarity = null, int page = 1, int pageSize = 55);
         Task<List<CardDetailResponse>> GetDistinctTypesAsync();
         Task<List<CardDetailResponse>> GetDistinctRaritiesAsync();
         Task<List<CardDetailResponse>> GetDistinctSubtypesAsync();

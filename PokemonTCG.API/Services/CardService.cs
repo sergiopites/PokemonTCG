@@ -399,11 +399,11 @@ namespace PokemonTCG.API.Services
                 _logger.LogError($"Error saving cards: {ex.Message}");
             }
         }
-        public async Task<PagedResult<CardDetailDTO>> SearchCardsAsync(string? name = null,string? setId = null, string? supertype = null,
-                                                                        string? subtype = null, string? type = null,string? rarity = null,
-                                                                        int page = 1, int pageSize = 55)
+        public async Task<PagedResult<CardDetailDTO>> SearchCardsAsync(string? name = null, string? setId = null, string? ptcgoCode = null,
+                                                                       string? supertype = null, string? subtype = null, string? type = null,
+                                                                       string? rarity = null, int page = 1, int pageSize = 55)
         {
-            return await _cardRepository.SearchCardsAsync(name, setId, supertype, subtype, type, rarity, page, pageSize);
+            return await _cardRepository.SearchCardsAsync(name, setId, ptcgoCode, supertype, subtype, type, rarity, page, pageSize);
         }
         public async Task<CardDetailResponse> GetCardsByRarityAsync(string rarity, int page = 1, int pageSize = 55)
         {

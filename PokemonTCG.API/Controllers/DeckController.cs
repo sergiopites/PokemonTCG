@@ -38,9 +38,10 @@ namespace PokemonTCG.API.Controllers
         [HttpGet("autodeck")]
         public async Task<IActionResult> AutoDeck()
         {
-            var pokemon = await _cardService.SearchCardsAsync(null, null, "Pokémon", null, null, null, 1, 200);
-            var trainer = await _cardService.SearchCardsAsync(null, null, "Trainer", null, null, null, 1, 200);
-            var energy = await _cardService.SearchCardsAsync(null, null, "Energy", null, null, null, 1, 200);
+            // Uso de argumentos nombrados para evitar desajustes posicionales con la firma del servicio.
+            var pokemon = await _cardService.SearchCardsAsync(supertype: "Pokémon", page: 1, pageSize: 200);
+            var trainer = await _cardService.SearchCardsAsync(supertype: "Trainer", page: 1, pageSize: 200);
+            var energy = await _cardService.SearchCardsAsync(supertype: "Energy", page: 1, pageSize: 200);
 
             var rand = new Random();
 
