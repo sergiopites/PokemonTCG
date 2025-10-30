@@ -199,7 +199,7 @@ namespace PokemonTCG.API.Repositories
             var totalCount = await query.CountAsync();
 
             var items = await query
-                .OrderBy(c => c.Name)
+                //.OrderBy(c => c.Name)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(c => new CardDetailDTO

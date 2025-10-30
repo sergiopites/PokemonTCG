@@ -120,18 +120,18 @@ export default function CreateDeck() {
 
     const handleSubmit = async () => {
         if (!name.trim()) {
-            alert("⚠️ Please enter a deck name.");
+            setMessage("⚠️ Please enter a deck name.");
             return;
         }
 
         if (!selectedCards || selectedCards.length === 0) {
-            alert("⚠️ Please select at least one card.");
+            setMessage("⚠️ Please select at least one card.");
             return;
         }
 
         const totalCards = selectedCards.reduce((sum, c) => sum + c.quantity, 0);
         if (totalCards !== 60) {
-            alert(`⚠️ Your deck must have exactly 60 cards. Current: ${totalCards}`);
+            setMessage(`⚠️ Your deck must have exactly 60 cards. Current: ${totalCards}`);
             return;
         }
 
@@ -142,7 +142,7 @@ export default function CreateDeck() {
 
 
         if (payloadCards.length === 0) {
-            alert("⚠️ No valid cards to submit.");
+            setMessage("⚠️ No valid cards to submit.");
             return;
         }
 
@@ -165,13 +165,13 @@ export default function CreateDeck() {
                 throw new Error(text || "Error creating deck");
             }
 
-            alert("✅ Deck created successfully!");
+            setMessage("✅ Deck created successfully!");
             setName("");
             setDescription("");
             setSelectedCards([]);
         } catch (err) {
             console.error("Error creating deck:", err);
-            alert("❌ Error creating deck. Check console for details.");
+            setMessage("❌ Error creating deck. Check console for details.");
         }
     };
 
@@ -241,7 +241,12 @@ export default function CreateDeck() {
             return prev;
         });
     };
-    const clearSelection = () => setSelectedCards([]);
+    const clearSelection = () => {
+        setSelectedCards([]);
+        setMessage("");
+        setError("");
+    };
+
     const removeCard = (cardId) => {
         setSelectedCards((prev) => {
             const found = prev.find((c) => c.cardId === cardId);
@@ -260,6 +265,26 @@ export default function CreateDeck() {
         // eliminar completamente (botón ❌)
         setSelectedCards((prev) => prev.filter((c) => c.cardId !== cardId));
     };
+    const [autoDeckCount, setAutoDeckCount] = useState(1);   
+    const handleAutoDeck = async () => {
+        try {
+            setLoading(true);
+            clearSelection();
+            const res = await fetch(`${API_URL}/api/deck/autodeck`);
+            const autoDeck = await res.json();
+            autoDeck.forEach(card => toggleCard(card));
+
+            setMessage("✅ Auto Deck generado correctamente (60 cartas).");
+
+        } catch (err) {
+            console.error(err);
+            setMessage("❌ Error generando el mazo automático.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
     return (
         <div
             className="page-content"
@@ -272,28 +297,40 @@ export default function CreateDeck() {
             }}
         >
             {/* Header y filtros */}
-            <table width="100%" className="tcg-table pokemon-tcg-text" border="1">
+            <table width="100%" className="tcg-table pokemon-tcg-text">
                 <tbody>
                     <tr>
                         <td colSpan="6" width="100%" style={{ textAlign: "center" }}>
                             <h2 className="text-blue-700 font-bold text-2xl mb-4">Deck Management</h2>
                         </td>
                     </tr>
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        <td style={{ verticalAlign: "top", paddingTop: "12px" }}>
-                            <label>Name:</label>
-                        </td>
+                    <tr>                
+                        <td colSpan="2" style={{ verticalAlign: "top", paddingTop: "10px" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
 
-                        <td>
-                            <input
-                                type="text"
-                                placeholder="Deck name"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                style={{ display: "block", margin: "10px 0", padding: "8px", width: "300px" }}
-                            />
+                                {/* 🔹 Name */}
+                                <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                                    <label style={{ width: "90px", textAlign: "right", marginTop: "6px" }}>Name:</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Deck name"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        style={{ padding: "8px", width: "300px" }}
+                                    />
+                                </div>
+
+                                {/* 🔹 Description */}
+                                <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                                    <label style={{ width: "90px", textAlign: "right", marginTop: "6px" }}>Description:</label>
+                                    <textarea
+                                        placeholder="Description"
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        style={{ padding: "8px", width: "300px", height: "80px" }}
+                                    />
+                                </div>
+                            </div>
                         </td>
 
                         <td
@@ -430,6 +467,13 @@ export default function CreateDeck() {
                                         Clear
                                     </button>
                                     <button
+                                        onClick={handleAutoDeck}
+                                        style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #ddd" }}
+                                    >
+                                        Auto Deck
+                                    </button>
+
+                                    <button
                                         onClick={handleSubmit}
                                         style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #ddd" }}
                                     >
@@ -439,24 +483,10 @@ export default function CreateDeck() {
                             </div>
                         </td>
                     </tr>
-                    <tr>
-                        <td width="17%"></td>
-                        <td width="17%"></td>
-                        <td>
-                            <label>Description:</label>
-                        </td>
-                        <td width="17%">
-                            <textarea
-                                placeholder="Description"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                style={{ display: "block", margin: "10px 0", padding: "8px", width: "300px", height: "80px" }}
-                            />
-                        </td>
-                    </tr>
                 </tbody>
             </table>
-            <table width="100%" border="1">
+            <br></br>
+            <table width="100%">
                 <tbody>
                     <tr>
                         <td width="17%">
@@ -588,7 +618,7 @@ export default function CreateDeck() {
                     {message}
                 </p>
             )}
-
+            <br></br>
             {/* Contenedor de cartas con scroll */}
             <div>
                 <div
