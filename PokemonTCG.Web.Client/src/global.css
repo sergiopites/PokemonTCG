@@ -209,7 +209,15 @@ footer {
     min-height: 100vh;
     padding: 20px;
 }
-
+.page-content-deck-import {
+    /*background-image: url("/images/cardsBackground3.jpg");*/
+    background-color: lightskyblue;
+    background-repeat: repeat;
+    background-size: cover;
+    background-position: top;
+    min-height: 30vh;
+    padding: 20px;
+}
 /* ---------------------------------  General  --------------------------------- */
 .all-cards {
     max-width: 1200px;

@@ -105,7 +105,7 @@ export default function CreateDeck() {
                 });
 
                 const res = await fetch(`${API_URL}/api/card/search?${params.toString()}`);
-                if (!res.ok) throw new Error("Error al buscar cartas");
+                if (!res.ok) throw new Error("Error searching for letters");
                 const data = await res.json();
 
                 setCards(data?.items ?? []);
@@ -113,7 +113,7 @@ export default function CreateDeck() {
                 const pageSize = Number(data?.pageSize ?? 55);
                 setTotalPages(pageSize > 0 ? Math.max(1, Math.ceil(totalCount / pageSize)) : 1);
             } catch (err) {
-                console.error("Error cargando cartas:", err);
+                console.error("Error loading cards:", err);
             }
         };
 
@@ -121,7 +121,7 @@ export default function CreateDeck() {
     }, [search, setId, supertype, type, subtype, rarity, page, API_URL]);
     const handleImportFromText = async () => {
         if (!importText.trim()) {
-            alert("⚠️ Pegá el texto del mazo primero.");
+            alert("⚠️ Paste the deck text first.");
             return;
         }
 
@@ -133,9 +133,8 @@ export default function CreateDeck() {
                 .map((l) => l.trim())
                 .filter((l) => l && !/^pokémon|entrenador|energ[ií]a|cartas totales/i.test(l));
 
-            const parsed = [];
-            // 📘 Formato: cantidad nombre ptcgocode número
-            const regex = /^(\d+)\s+(.+?)\s+([A-Z0-9\-]{2,6})\s+(\d+)$/i;
+            const parsed = [];           
+            const regex = /^(\d+)\s+([\p{L}\p{N}\s'’"“”!.,\-:&éÉáÁóÓúÚíÍçÇ()]+?)\s+([A-Z0-9\-]{2,10})\s+(\d+)$/u;           
 
             for (const line of lines) {
                 const m = regex.exec(line);
@@ -150,7 +149,7 @@ export default function CreateDeck() {
             }
 
             if (parsed.length === 0) {
-                alert("⚠️ No se detectaron cartas válidas.");
+                alert("⚠️ No valid cards were detected.");
                 setLoading(false);
                 return;
             }
@@ -160,7 +159,6 @@ export default function CreateDeck() {
 
             for (const card of parsed) {
                 try {
-                    // 🔍 Buscar por name + ptcgocode
                     const url = `${API_URL}/api/card/search?name=${encodeURIComponent(card.name)}&ptcgocode=${encodeURIComponent(card.ptcgocode)}&number=${encodeURIComponent(card.number)}&page=1&pageSize=10`;
                     const res = await fetch(url);
                     if (!res.ok) continue;
@@ -168,17 +166,19 @@ export default function CreateDeck() {
                     const data = await res.json();
                     const list = data.items ?? data.data ?? [];
 
-                    // Buscar coincidencia exacta por número o nombre
                     const match =
                         list.find((c) => String(c.number) === card.number) ||
                         list.find((c) => (c.name || "").toLowerCase() === card.name.toLowerCase()) ||
                         null;
 
                     if (match) {
-                        found.push({
+                        // normalizar ptcgocode desde la carta encontrada (variantes de propiedad)
+                        const foundCard = {
                             ...match,
                             quantity: card.quantity,
-                        });
+                            ptcgocode: match?.ptcgoCode ?? match?.ptcgocode ?? match?.ptcgoCode ?? card.ptcgocode,
+                        };
+                        found.push(foundCard);
                     } else {
                         notFound.push(card);
                     }
@@ -194,39 +194,71 @@ export default function CreateDeck() {
                 return;
             }
 
-            // 🔢 Agrupar y respetar las reglas (máx. 4 copias salvo energía)
-            const grouped = {};
-            for (const card of found) {
-                const id = card.cardId ?? card.id ?? card.externalId ?? `${card.name}-${card.ptcgocode}-${card.number}`;
-                const isEnergy = (card.supertype ?? "").toLowerCase() === "energy";
-                const existing = grouped[id];
-
-                if (existing) {
-                    existing.quantity += isEnergy
-                        ? card.quantity
-                        : Math.min(card.quantity, 4 - existing.quantity);
-                } else {
-                    grouped[id] = {
-                        cardId: id,
-                        name: card.name,
-                        supertype: card.supertype,
-                        subtype: card.subtype,
-                        quantity: isEnergy ? card.quantity : Math.min(card.quantity, 4),
-                    };
+            // 🔢 Agrupar respetando límites y fusionando con el mazo actual
+            setSelectedCards((prev) => {
+                const grouped = {};
+                // 🔹 Empezamos con las cartas ya existentes (preservando ptcgocode si existe)
+                for (const c of prev) {
+                    grouped[c.cardId] = { ...c };
                 }
-            }
 
-            const newSelected = Object.values(grouped);
-            setSelectedCards(newSelected);
+                // 🔹 Añadimos o combinamos las nuevas cartas importadas
+                for (const card of found) {
+                    const id = card.cardId ?? card.id ?? card.externalId ?? `${card.name}-${card.ptcgocode ?? card.ptcgoCode ?? card.number}`;
+                    const isEnergy = (card.supertype ?? "").toLowerCase() === "energy";
+
+                    if (!grouped[id]) {
+                        grouped[id] = {
+                            cardId: id,
+                            name: card.name,
+                            supertype: card.supertype,
+                            subtype: card.subtype,
+                            quantity: 0,
+                            ptcgocode: card.ptcgocode ?? card.ptcgoCode ?? "",
+                            number: card.number ?? "",
+                            imageLarge:
+                                card.imageLarge ??
+                                card.imageUrl ??
+                                (card.images && (card.images.large ?? card.images.small)) ??
+                                ""
+                        };
+                    }
+
+                    const totalNow = Object.values(grouped).reduce((sum, c) => sum + c.quantity, 0);
+                    const remaining = 60 - totalNow;
+
+                    if (remaining <= 0) {
+                        setMessage("⚠️ Límite de 60 cartas alcanzado. No se agregaron más.");
+                        break;
+                    }
+
+                    const canAdd = Math.min(
+                        isEnergy ? card.quantity : Math.min(4 - grouped[id].quantity, card.quantity),
+                        remaining
+                    );
+
+                    if (canAdd > 0) {
+                        grouped[id].quantity += canAdd;
+                        grouped[id].ptcgocode = grouped[id].ptcgocode || card.ptcgocode || card.ptcgoCode || "";
+                        grouped[id].number = grouped[id].number || (card.number ?? "");
+                        grouped[id].imageLarge = grouped[id].imageLarge || card.imageLarge || card.imageUrl || (card.images && (card.images.large ?? card.images.small)) || "";
+                    }
+                }
+
+                const newDeck = Object.values(grouped);
+                const totalQty = newDeck.reduce((sum, c) => sum + c.quantity, 0);
+
+                alert(`✅ Se importaron cartas (total actual: ${totalQty} / 60)`);
+
+                if (notFound.length > 0) {
+                    console.warn("❌ No encontradas:", notFound);
+                }
+
+                return newDeck;
+            });
+
             setShowImportModal(false);
             setImportText("");
-
-            const totalQty = newSelected.reduce((sum, c) => sum + c.quantity, 0);
-            alert(`✅ Se importaron ${totalQty} cartas (${newSelected.length} únicas).`);
-
-            if (notFound.length > 0) {
-                console.warn("❌ No encontradas:", notFound);
-            }
         } catch (err) {
             console.error("❌ Error al importar:", err);
             alert("Error al importar mazo. Ver consola.");
@@ -234,6 +266,7 @@ export default function CreateDeck() {
             setLoading(false);
         }
     };
+
     const handleSubmit = async () => {
         if (!name.trim()) {
             setMessage("⚠️ Please enter a deck name.");
@@ -254,6 +287,8 @@ export default function CreateDeck() {
         const payloadCards = selectedCards.map((item) => ({
             cardId: String(item.cardId),
             quantity: Number(item.quantity),
+            ptcgocode: String(item.ptcgocode ?? item.ptcgoCode ?? ""),
+            imageLarge: String(item.imageLarge),
         }));
 
 
@@ -292,11 +327,10 @@ export default function CreateDeck() {
     };
 
     // función utilitaria: total actual de cartas seleccionadas
-    // Calcula el total actual
     const getTotalSelected = (arr) =>
         arr.reduce((s, c) => s + (Number(c.quantity) || 0), 0);
 
-    // toggleCard mejorado
+    // toggleCard mejorado (ahora incluye ptcgocode)
     const toggleCard = (cardOrId) => {
         const id = typeof cardOrId === "string" ? cardOrId : cardOrId.cardId;
         const cardObj = typeof cardOrId === "object"
@@ -310,7 +344,7 @@ export default function CreateDeck() {
             // Si ya hay 60 cartas, no permitimos sumar más (también evita añadir nuevas)
             if (totalNow >= 60 && !found) {
                 // opcional: mostrar mensaje breve
-                setMessage("⚠️ El mazo ya tiene 60 cartas. Elimina o reduce cartas para añadir otras.");
+                setMessage("⚠️ The deck already has 60 cards.Remove or reduce cards to add others.");
                 return prev;
             }
 
@@ -322,13 +356,13 @@ export default function CreateDeck() {
 
                 // Si incrementar excede 60 totales, bloquear
                 if (totalNow >= 60) {
-                    setMessage("⚠️ No se puede superar 60 cartas en el mazo.");
+                    setMessage("⚠️ The deck cannot exceed 60 cards.");
                     return prev;
                 }
 
                 // Si no es Energy, respetar max 4 por carta
                 if (!isEnergy && found.quantity >= 4) {
-                    setMessage("⚠️ Límite de 4 copias alcanzado para esta carta.");
+                    setMessage("⚠️ Limit of 4 copies reached for this card.");
                     return prev;
                 }
 
@@ -348,12 +382,19 @@ export default function CreateDeck() {
                         supertype: cardObj?.supertype ?? cardObj?.superType ?? "",
                         subtype: cardObj?.subtype ?? cardObj?.subType ?? "",
                         quantity: 1,
+                        ptcgocode: cardObj?.ptcgoCode ?? cardObj?.ptcgocode ?? "",
+                        number: cardObj?.number ?? cardObj?.Number ?? "",
+                        imageLarge:
+                            cardObj?.imageLarge ??
+                            cardObj?.imageUrl ??
+                            (cardObj?.images && (cardObj.images.large ?? cardObj.images.small)) ??
+                            ""
                     },
                 ];
             }
 
             // fallback, no cambios
-            setMessage("⚠️ No se pueden añadir más cartas (límite 60).");
+            setMessage("⚠️ No more cards can be added (limit 60).");
             return prev;
         });
     };
@@ -381,7 +422,7 @@ export default function CreateDeck() {
         // eliminar completamente (botón ❌)
         setSelectedCards((prev) => prev.filter((c) => c.cardId !== cardId));
     };
-    const [autoDeckCount, setAutoDeckCount] = useState(1);   
+    //const [autoDeckCount, setAutoDeckCount] = useState(1);   
     const handleAutoDeck = async () => {
         try {
             setLoading(true);
@@ -390,11 +431,11 @@ export default function CreateDeck() {
             const autoDeck = await res.json();
             autoDeck.forEach(card => toggleCard(card));
 
-            setMessage("✅ Auto Deck generado correctamente (60 cartas).");
+            setMessage("✅ Deck created successfully (60 cards).");
 
         } catch (err) {
             console.error(err);
-            setMessage("❌ Error generando el mazo automático.");
+            setMessage("❌ Error creating deck.");
         } finally {
             setLoading(false);
         }
@@ -461,7 +502,7 @@ export default function CreateDeck() {
                             }}
                         >
                             {/*Selected Cards*/}
-                            <h3 style={{ textAlign: "center", fontWeight: "bold", marginBottom: "8px" }}>Selected Cards</h3>
+                            <h3 style={{ textAlign: "center", fontWeight: "bold", marginBottom: "8px" }}>Cards Deck</h3>
 
                             {selectedCards.length === 0 ? (
                                 <p style={{ textAlign: "center", color: "#777" }}>No cards selected</p>
@@ -486,17 +527,27 @@ export default function CreateDeck() {
                                                 borderBottom: "1px solid #eee",
                                                 fontSize: "0.95rem",
                                             }}
-                                        >
-                                            {/* 🔹 Info de la carta (izquierda) */}
-                                            <div style={{ flex: 1, textAlign: "left" }}>
-                                                <div style={{ fontWeight: 600, marginBottom: "2px" }}>{c.name}</div>
-                                                <div style={{ color: "#555", fontSize: "0.85rem" }}>
-                                                    {c.supertype || "—"}
-                                                    {c.subtype ? ` • ${c.subtype}` : ""}
-                                                </div>
-                                            </div>
+                                        >                                            
+                                            <div style={{ flex: 1, textAlign: "left", display: "flex", gap: "8px", alignItems: "center" }}>
+                                                {c.imageLarge ? (
+                                                    <img
+                                                        src={c.imageLarge}
+                                                        alt={c.name ?? "card image"}
+                                                        style={{ width: "48px", height: "68px", objectFit: "cover", borderRadius: "4px", flexShrink: 0 }}
+                                                        onError={(e) => { e.target.style.display = "none"; }}
+                                                    />
+                                                ) : null}
 
-                                            {/* 🔹 Controles (derecha) */}
+                                                <div style={{ display: "flex", flexDirection: "column", marginLeft: c.imageLarge ? "8px" : "0" }}>
+                                                    <div style={{ fontWeight: 600, marginBottom: "2px" }}>{c.name}</div>
+                                                    <div style={{ color: "#555", fontSize: "0.85rem" }}>
+                                                        {c.supertype || "—"}
+                                                        {c.number ? ` • ${c.number}` : ""}
+                                                        {c.subtype ? ` • ${c.subtype}` : ""}
+                                                        {(c.ptcgocode ?? c.ptcgoCode) ? ` • ${c.ptcgocode ?? c.ptcgoCode}` : ""}
+                                                    </div>
+                                                </div>
+                                            </div>                                            
                                             <div
                                                 style={{
                                                     display: "flex",
@@ -594,10 +645,8 @@ export default function CreateDeck() {
                             onClick={() => setShowImportModal(true)}
                             style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #ddd" }}
                         >
-                            Import Deck
+                            Import
                         </button>
-
-
                         <button
                             onClick={handleSubmit}
                             style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #ddd" }}
@@ -847,13 +896,7 @@ export default function CreateDeck() {
                         }}
                     >
                         <div
-                            style={{
-                                background: "white",
-                                padding: "20px",
-                                borderRadius: "12px",
-                                width: "500px",
-                                boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
-                            }}
+                            className="page-content-deck-import"                     
                         >
                             <h3 style={{ marginBottom: "12px", fontWeight: "bold", textAlign: "center" }}>
                                 📋 Import Deck (Pokémon TCG Live)
