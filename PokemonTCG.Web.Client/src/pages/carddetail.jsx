@@ -10,7 +10,7 @@ export default function CardDetail() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [backImagePath, setBackImagePath] = useState("");
-    const API_URL = import.meta.env.VITE_API_URL;   
+    const API_URL = import.meta.env.VITE_API_URL;
 
     useEffect(() => {
         const fetchCard = async () => {
@@ -56,7 +56,7 @@ export default function CardDetail() {
             .replace(/[^\w\-\.]/g, "");
 
         try {
-            const response = await fetch("http://localhost:5202/api/printer/generate", {
+            const response = await fetch(`${API_URL}/api/printer/generate`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -76,12 +76,12 @@ export default function CardDetail() {
 
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
-                        
+
             const a = document.createElement("a");
             a.href = url;
             a.download = `${safeFileName}.pdf`;
             a.click();
-                        
+
             window.URL.revokeObjectURL(url);
 
         } catch (error) {
@@ -98,7 +98,7 @@ export default function CardDetail() {
                     <table width="100%">
                         <tbody>
                             <tr>
-                                <td colSpan={3} width="50%" style={{ textAlign: "center", verticalAlign: "middle" }}>                                
+                                <td colSpan={3} width="50%" style={{ textAlign: "center", verticalAlign: "middle" }}>
                                     {card.imageLarge ? (
                                         <img
                                             src={card.imageLarge}
@@ -112,7 +112,7 @@ export default function CardDetail() {
                                 </td>
                             </tr>
                             <tr>
-                                <td  width="50%" style={{ textAlign: "right", verticalAlign: "center" }}>
+                                <td width="50%" style={{ textAlign: "right", verticalAlign: "center" }}>
                                     {card.setSymbol && (
                                         <img
                                             src={card.setSymbol}
@@ -123,7 +123,7 @@ export default function CardDetail() {
                                     )}
                                 </td>
                                 <td></td>
-                                <td style={{ textAlign: "left", verticalAlign: "center" }}>                                
+                                <td style={{ textAlign: "left", verticalAlign: "center" }}>
                                     {card.number && (
                                         <span> {card.number}/{card.setTotal}</span>
                                     )}
@@ -133,7 +133,7 @@ export default function CardDetail() {
                                 <td
                                     colSpan={3}
                                     style={{ textAlign: "center", verticalAlign: "middle", paddingTop: "5px" }}
-                                >                               
+                                >
                                     {card.artist && (
                                         <span> Illustration: {card.artist}</span>
                                     )}
@@ -167,7 +167,7 @@ export default function CardDetail() {
                                         {card.supertype} · {card.type} · {card.subtype}
                                     </span>
                                 ) : (
-                                        <span>
+                                    <span>
                                         {card.supertype} · {card.subtype}
                                     </span>
                                 )}
@@ -221,19 +221,19 @@ export default function CardDetail() {
                                 )}
 
                             </td>
-                            <td width="33%">                               
+                            <td width="33%">
                                 <span>Resistance: </span>
-                                    {card.resistanceDetails && card.resistanceDetails.length > 0 ? (
-                                        card.resistanceDetails.map((res, index) => (
-                                            <span key={index} className="ml-1">
-                                                <EnergyIcon type={res.type} /> {res.value}
-                                            </span>
-                                        ))
-                                    ) : (
-                                        <span className="text-gray-500">--</span>
+                                {card.resistanceDetails && card.resistanceDetails.length > 0 ? (
+                                    card.resistanceDetails.map((res, index) => (
+                                        <span key={index} className="ml-1">
+                                            <EnergyIcon type={res.type} /> {res.value}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span className="text-gray-500">--</span>
                                 )}
                             </td>
-                            <td width="33%">                                
+                            <td width="33%">
                                 <span>Retreat: </span>
                                 {(() => {
                                     let costs = [];
@@ -354,7 +354,7 @@ export default function CardDetail() {
                                         📥 Export PDF
                                     </button>
                                 </p>
-                            </td>                       
+                            </td>
 
                         </tr></table>
                 </div>
@@ -376,7 +376,7 @@ function EnergyIcon({ type }) {
         darkness: "darkness.png",
         steel: "steel.png",
         metal: "steel.png",
-        dragon: "dragon.png",        
+        dragon: "dragon.png",
         colorless: "colorless.png",
     };
     const key = type.toLowerCase().trim();

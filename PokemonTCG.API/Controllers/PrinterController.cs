@@ -27,6 +27,14 @@ namespace PokemonTCG.API.Controllers
             return File(pdfBytes, "application/pdf", outputFileName + ".pdf");
         }
 
+        [HttpPost("generatedeck")]
+        public async Task<IActionResult> GenerateDeck([FromBody] PrintCardRequest request)
+        {
+            var pdfBytes = await _printerService.GenerateCardDeckPdfAsync(request.ImageUrls, request.FileName);
+            var outputFileName = string.IsNullOrWhiteSpace(request.FileName) ? "PokemonCard" : request.FileName;
+
+            return File(pdfBytes, "application/pdf", outputFileName + ".pdf");
+        }
 
     }
 }

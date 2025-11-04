@@ -3,13 +3,19 @@
 export default function SaveCards() {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
+    const API_URL = import.meta.env.VITE_API_URL || "";
 
     const handleSave = async () => {
         setLoading(true);
         setMessage("");
+
         try {
-            const response = await fetch("http://localhost:5202/api/Cards/addpokemoncards", {
-                method: "POST"
+            const url = `${API_URL}/api/card/addpokemoncards`;
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                }
             });
 
 

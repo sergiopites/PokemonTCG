@@ -23,6 +23,8 @@ export default function CreateDeck() {
     const [availableRarities, setAvailableRarities] = useState([]);
     const [showImportModal, setShowImportModal] = useState(false);
     const [importText, setImportText] = useState("");
+    const [importMessage, setImportMessage] = useState(null);
+    const [backImagePath, setBackImagePath] = useState("");
 
     const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -119,6 +121,86 @@ export default function CreateDeck() {
 
         fetchCards();
     }, [search, setId, supertype, type, subtype, rarity, page, API_URL]);
+
+    useEffect(() => {
+        // Cargar la configuración al montar el componente
+        fetch("/config.json")
+            .then(res => res.json())
+            .then(config => setBackImagePath(config.backImagePath))
+            .catch(() => setBackImagePath("")); // Valor por defecto si falla
+    }, []);
+
+    const handleDownloadDeckPdf = async () => {
+        try {
+            if (!selectedCards || selectedCards.length === 0) {
+                alert("No hay cartas en el mazo para imprimir.");
+                return;
+            }
+
+            // 🔹 Crear una lista de URLs de imágenes (frentes + reverso)
+            const imageUrls = [];
+
+            for (const c of selectedCards) {
+                if (c.imageLarge) {
+                    // Repetimos según la cantidad de copias
+                    for (let i = 0; i < (c.quantity || 1); i++) {
+                        imageUrls.push(c.imageLarge);
+                    }
+                } else {
+                    console.warn(`⚠️ Carta sin imagen: ${c.name}`);
+                }
+            }
+
+            // 🔹 Agregar reversos si corresponde
+            if (backImagePath) {
+                const total = imageUrls.length;
+                for (let i = 0; i < total; i++) {
+                    imageUrls.push(backImagePath);
+                }
+            }
+
+            if (imageUrls.length === 0) {
+                alert("No se encontraron imágenes válidas para imprimir.");
+                return;
+            }
+
+            // 🔹 Nombre del archivo
+            const deckName = name?.trim() || "Deck";
+            const safeFileName = deckName.replace(/\s+/g, "_").replace(/[^\w\-\.]/g, "");
+
+            // 🔹 Enviar al backend
+            const response = await fetch(`${API_URL}/api/printer/generatedeck`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    imageUrls,
+                    fileName: safeFileName,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error generando PDF: ${response.status} - ${response.statusText}`);
+            }
+
+            // 🔹 Descargar PDF
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${safeFileName}.pdf`;
+            a.click();
+
+            window.URL.revokeObjectURL(url);
+
+            console.log(`✅ Se generó correctamente el PDF con ${imageUrls.length} imágenes.`);
+
+        } catch (error) {
+            console.error("❌ Error al generar el PDF del mazo:", error);
+            alert("No se pudo descargar el mazo. Intenta nuevamente.");
+        }
+    };
+
     const handleImportFromText = async () => {
         if (!importText.trim()) {
             alert("⚠️ Paste the deck text first.");
@@ -133,8 +215,8 @@ export default function CreateDeck() {
                 .map((l) => l.trim())
                 .filter((l) => l && !/^pokémon|entrenador|energ[ií]a|cartas totales/i.test(l));
 
-            const parsed = [];           
-            const regex = /^(\d+)\s+([\p{L}\p{N}\s'’"“”!.,\-:&éÉáÁóÓúÚíÍçÇ()]+?)\s+([A-Z0-9\-]{2,10})\s+(\d+)$/u;           
+            const parsed = [];
+            const regex = /^(\d+)\s+([\p{L}\p{N}\s'’"“”!.,\-:&éÉáÁóÓúÚíÍçÇ()]+?)\s+([A-Z0-9\-]{2,10})\s+(\d+)$/u;
 
             for (const line of lines) {
                 const m = regex.exec(line);
@@ -172,7 +254,6 @@ export default function CreateDeck() {
                         null;
 
                     if (match) {
-                        // normalizar ptcgocode desde la carta encontrada (variantes de propiedad)
                         const foundCard = {
                             ...match,
                             quantity: card.quantity,
@@ -194,15 +275,12 @@ export default function CreateDeck() {
                 return;
             }
 
-            // 🔢 Agrupar respetando límites y fusionando con el mazo actual
             setSelectedCards((prev) => {
                 const grouped = {};
-                // 🔹 Empezamos con las cartas ya existentes (preservando ptcgocode si existe)
                 for (const c of prev) {
                     grouped[c.cardId] = { ...c };
                 }
 
-                // 🔹 Añadimos o combinamos las nuevas cartas importadas
                 for (const card of found) {
                     const id = card.cardId ?? card.id ?? card.externalId ?? `${card.name}-${card.ptcgocode ?? card.ptcgoCode ?? card.number}`;
                     const isEnergy = (card.supertype ?? "").toLowerCase() === "energy";
@@ -248,10 +326,19 @@ export default function CreateDeck() {
                 const newDeck = Object.values(grouped);
                 const totalQty = newDeck.reduce((sum, c) => sum + c.quantity, 0);
 
-                alert(`✅ Se importaron cartas (total actual: ${totalQty} / 60)`);
+                const importedCount = found.reduce((sum, c) => sum + (c.quantity ?? 0), 0);
 
                 if (notFound.length > 0) {
-                    console.warn("❌ No encontradas:", notFound);
+                    const unknownList = notFound.map(
+                        nf => `• ${nf.quantity}x ${nf.name} (${nf.ptcgocode ?? "?"} ${nf.number ?? "?"})`
+                    ).join("\n");
+                    alert(
+                        `✅ Se importaron ${importedCount} cartas (${found.length} tipos) (total actual: ${totalQty}/60)\n\n❌ No se pudieron validar:\n${unknownList}`
+                    );
+                } else {
+                    alert(
+                        `✅ Se importaron ${importedCount} cartas (${found.length} tipos) (total actual: ${totalQty}/60)`
+                    );
                 }
 
                 return newDeck;
@@ -274,7 +361,7 @@ export default function CreateDeck() {
         }
 
         if (!selectedCards || selectedCards.length === 0) {
-            setMessage("⚠️ Please select at least one card.");
+            setMessage("⚠️ Please select at least 60 cards or import a deck.");
             return;
         }
 
@@ -341,38 +428,31 @@ export default function CreateDeck() {
             const totalNow = getTotalSelected(prev);
             const found = prev.find((c) => c.cardId === id);
 
-            // Si ya hay 60 cartas, no permitimos sumar más (también evita añadir nuevas)
             if (totalNow >= 60 && !found) {
-                // opcional: mostrar mensaje breve
-                setMessage("⚠️ The deck already has 60 cards.Remove or reduce cards to add others.");
+                setMessage("⚠️ The deck already has 60 cards. Remove or reduce cards to add others.");
                 return prev;
             }
 
-            // Si existe la carta en la selección: intentamos incrementar 1
             if (found) {
                 const isEnergy = ((found.supertype ?? cardObj.supertype ?? cardObj.superType) || "")
                     .toString()
                     .toLowerCase() === "energy";
 
-                // Si incrementar excede 60 totales, bloquear
                 if (totalNow >= 60) {
                     setMessage("⚠️ The deck cannot exceed 60 cards.");
                     return prev;
                 }
 
-                // Si no es Energy, respetar max 4 por carta
                 if (!isEnergy && found.quantity >= 4) {
                     setMessage("⚠️ Limit of 4 copies reached for this card.");
                     return prev;
                 }
 
-                // incrementar 1 (energía puede crecer sin el tope 4)
                 return prev.map((c) =>
                     c.cardId === id ? { ...c, quantity: c.quantity + 1 } : c
                 );
             }
 
-            // Si no estaba y podemos agregar (totalNow < 60)
             if (totalNow < 60) {
                 return [
                     ...prev,
@@ -398,10 +478,34 @@ export default function CreateDeck() {
             return prev;
         });
     };
+
     const clearSelection = () => {
-        setSelectedCards([]);
-        setMessage("");
+        // Entradas generales
+        setName("");
+        setDescription("");
         setError("");
+        setMessage("");
+        setLoading(false);
+
+        // Listas y resultados
+        /* setCards([]);*/
+        setSelectedCards([]);
+
+        // Paginación
+        setPage(1);
+        setTotalPages(1);
+
+        // Listas de filtros (sets, types, etc.)
+        //setAvailableSets([]);
+        //setAvailableSuperTypes([]);
+        //setAvailableTypes([]);
+        //setAvailableSubTypes([]);
+        //setAvailableRarities([]);
+
+        // Import modal
+        setShowImportModal(false);
+        setImportText("");
+        setImportMessage(null);
     };
 
     const removeCard = (cardId) => {
@@ -435,7 +539,7 @@ export default function CreateDeck() {
 
         } catch (err) {
             console.error(err);
-            setMessage("❌ Error creating deck.");
+            setMessage("❌ Error building deck.");
         } finally {
             setLoading(false);
         }
@@ -443,25 +547,16 @@ export default function CreateDeck() {
 
 
     return (
-        <div
-            className="page-content"
-            style={{
-                padding: "20px",
-                display: "flex",
-                flexDirection: "column",
-                height: "100vh",
-                boxSizing: "border-box",
-            }}
-        >
+        <div className="page-content">
             {/* Header y filtros */}
             <table width="100%" className="tcg-table pokemon-tcg-text">
                 <tbody>
                     <tr>
                         <td colSpan="6" width="100%" style={{ textAlign: "center" }}>
-                            <h2 className="text-blue-700 font-bold text-2xl mb-4">Deck Management</h2>
+                            <h2 className="text-blue-700 font-bold text-2xl mb-4">Deck Builder</h2>
                         </td>
                     </tr>
-                    <tr>                
+                    <tr>
                         <td colSpan="2" style={{ verticalAlign: "top", paddingTop: "10px" }}>
                             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
 
@@ -527,7 +622,7 @@ export default function CreateDeck() {
                                                 borderBottom: "1px solid #eee",
                                                 fontSize: "0.95rem",
                                             }}
-                                        >                                            
+                                        >
                                             <div style={{ flex: 1, textAlign: "left", display: "flex", gap: "8px", alignItems: "center" }}>
                                                 {c.imageLarge ? (
                                                     <img
@@ -547,7 +642,7 @@ export default function CreateDeck() {
                                                         {(c.ptcgocode ?? c.ptcgoCode) ? ` • ${c.ptcgocode ?? c.ptcgoCode}` : ""}
                                                     </div>
                                                 </div>
-                                            </div>                                            
+                                            </div>
                                             <div
                                                 style={{
                                                     display: "flex",
@@ -626,9 +721,23 @@ export default function CreateDeck() {
                                 </ul>
                             )}
                             <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", alignItems: "center" }}>
-                                <div style={{ fontSize: "0.95rem" }}>
-                                    Total cards: <strong>{selectedCards.reduce((s, c) => s + c.quantity, 0)}</strong>
-                                </div>                               
+                                <table width="100%">
+                                    <tbody>
+                                        <tr>
+                                            <td style={{ fontSize: "0.95rem" }}>
+                                                Total cards: <strong>{selectedCards.reduce((s, c) => s + c.quantity, 0)}</strong>
+                                            </td>
+                                            <td>
+                                                <button
+                                                    onClick={handleDownloadDeckPdf}
+                                                    style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #ddd" }}
+                                                >
+                                                    Export PDF
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </td>
                     </tr>
@@ -639,7 +748,7 @@ export default function CreateDeck() {
                             onClick={handleAutoDeck}
                             style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #ddd" }}
                         >
-                            Auto Deck
+                            Auto Build
                         </button>
                         <button
                             onClick={() => setShowImportModal(true)}
@@ -652,7 +761,8 @@ export default function CreateDeck() {
                             style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #ddd" }}
                         >
                             Save
-                        </button></td></tr>
+                        </button>
+                    </td></tr>
                 </tbody>
             </table>
             <br></br>
@@ -790,31 +900,24 @@ export default function CreateDeck() {
             )}
             <br></br>
             {/* Contenedor de cartas con scroll */}
-            <div>
-                <div
-                    style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-                        gap: "10px",
-                        padding: "10px",
-                    }}
-                >
+            <div className="all-cards">
+                <div className="card-grid-search">
                     {cards.map((card) => (
                         <div
                             key={card.cardId}
                             onClick={() => toggleCard(card.cardId)}
                             style={{
-                                border: selectedCards.some((c) => c.cardId === card.cardId)
-                                    ? "2px solid limegreen"
-                                    : "1px solid gray",
+
+                                border: selectedCards.some((c) => c.cardId === card.cardId),
+                                //? "2px solid limegreen"
+                                //: "1px solid gray",
                                 position: "relative",
                                 cursor: "pointer",
                             }}
                         >
-                            <img className="card-item-search"
+                            <img className="card-item card-image"
                                 src={card.imageLarge}
                                 alt={card?.name}
-                                style={{ width: "100%", borderRadius: "4px", display: "block", margin: "0 auto" }}
                             />
                             <p style={{ fontSize: "14px", color: "#333", textAlign: "center", margin: "6px 0 0" }}>
                                 {card?.name}
@@ -882,6 +985,7 @@ export default function CreateDeck() {
             {
                 showImportModal && (
                     <div
+
                         style={{
                             position: "fixed",
                             top: 0,
@@ -896,10 +1000,19 @@ export default function CreateDeck() {
                         }}
                     >
                         <div
-                            className="page-content-deck-import"                     
+                            style={{
+                                background: "lightskyblue",
+                                padding: "20px",
+                                borderRadius: "12px",
+                                maxWidth: "700px",   // 🔹 más ancho
+                                width: "90%",
+                                margin: "0 auto",    // 🔹 centrado
+                                boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
+                            }}
                         >
-                            <h3 style={{ marginBottom: "12px", fontWeight: "bold", textAlign: "center" }}>
-                                📋 Import Deck (Pokémon TCG Live)
+                            <h3
+                                style={{ marginBottom: "12px", fontWeight: "bold", textAlign: "center" }}>
+                                📋 Import Deck
                             </h3>
 
                             <textarea
@@ -943,7 +1056,7 @@ export default function CreateDeck() {
                                         fontWeight: 600,
                                     }}
                                 >
-                                    Importar
+                                    Import
                                 </button>
                             </div>
                         </div>

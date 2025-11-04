@@ -24,7 +24,7 @@ public class DownloadController : ControllerBase
             request.Headers.Referrer = new Uri("https://www.pokemontcg.io/");
 
             var response = await _httpClient.SendAsync(request);
-            response.EnsureSuccessStatusCode(); // aquí lanzará si es 404 u otro error
+            response.EnsureSuccessStatusCode();
 
             var contentType = response.Content.Headers.ContentType?.ToString() ?? "image/png";
             var bytes = await response.Content.ReadAsByteArrayAsync();

@@ -167,7 +167,7 @@ export default function TableMenu() {
                                 >
                                     <li className="px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
                                         <Link to="/CreateDeck" style={{ color: "#059669", fontWeight: "500" }}>
-                                            Create decks
+                                            Build Deck
                                         </Link>
                                     </li>
                                 </ul>

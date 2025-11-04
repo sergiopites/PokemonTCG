@@ -35,6 +35,26 @@ namespace PokemonTCG.API.Services
             return await _printer.SaveImagesToPdfAsync(validUrls, fileName);
         }
 
+        public async Task<byte[]> GenerateCardDeckPdfAsync(List<string> imageUrls, string fileName)
+        {
+            if (imageUrls == null || imageUrls.Count == 0)
+                throw new ArgumentException("Image URLs cannot be empty.");
+
+            if (string.IsNullOrWhiteSpace(fileName))
+                fileName = "PokemonCard";
+
+            List<string> validUrls = new List<string>();
+
+            foreach (var url in imageUrls)
+            {
+                //if (Uri.IsWellFormedUriString(url, UriKind.Absolute) && Uri.TryCreate(url, UriKind.Absolute, out _))
+                //{
+                validUrls.Add(url);
+                //}
+            }
+
+            return await _printer.SaveDeckImagesToPdfAsync(validUrls, fileName);
+        }
 
     }
 }
