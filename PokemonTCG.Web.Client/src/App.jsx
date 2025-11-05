@@ -9,7 +9,7 @@ import AllSets from "./pages/AllSets";
 import CardDetail from "./pages/CardDetail";
 import CardsBySet from "./pages/CardsBySet";
 import CreateDecks from "./pages/CreateDeck";
-
+import SearchCard from "./pages/SearchCard";
 export default function App() {
     return (
         <BrowserRouter>
@@ -24,6 +24,7 @@ export default function App() {
                     <Route path="card/:setId" element={<CardsBySet />} />
                     <Route path="card/:setId/:cardId" element={<CardDetail />} />
                     <Route path="card/:cardId" element={<CardDetail />} />
+                    <Route path="card/searchcard" element={<SearchCard />} />
 
                     {/* Páginas secundarias */}
                     <Route path="createdeck" element={<CreateDecks />} />

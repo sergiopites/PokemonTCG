@@ -334,11 +334,7 @@ export default function CardDetail() {
                     )}
                     <table width="100%" className="section">
                         <tr>
-                            <td colSpan={2} style={{ textAlign: "center", verticalAlign: "middle" }}>
-                                <Link to={`/card/${card.setId}`}>
-                                    <p>⬅️ Back</p>
-                                </Link>
-                            </td><td style={{ textAlign: "center", verticalAlign: "middle" }} >
+                           <td style={{ textAlign: "center", verticalAlign: "middle" }} >
                                 {card.tcgPlayerUrl && (
                                     <p className="mt-4 text-right">
                                         <button
@@ -348,7 +344,8 @@ export default function CardDetail() {
                                         </button>
                                     </p>
                                 )}
-                            </td><td style={{ textAlign: "center", verticalAlign: "middle" }} >
+                            </td>
+                            <td style={{ textAlign: "center", verticalAlign: "middle" }} >
                                 <p className="mt-4 text-right">
                                     <button onClick={handleDownloadPdf} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                                         📥 Export PDF

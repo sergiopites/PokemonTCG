@@ -5,11 +5,11 @@ import { Link } from "react-router-dom";
 // src/pages/Home.jsx
 export default function Home() {
     return (
-        //<div className="page-content">
+        <div className="page-content">
             <div
                 style={{
                     height: "100vh",
-                    margin: 0,
+                    margin: 0,                    
                     padding: 0,
                     overflow: "hidden", // evita cualquier scroll
                 }}
@@ -17,6 +17,7 @@ export default function Home() {
                 <div
                     style={{
                         //backgroundImage: 'url("/src/images/pokemontcgHome2.png")',
+                        backgroundColor: "white",
                         backgroundSize: "cover",
                         backgroundPosition: "top center", // 👈 imagen anclada arriba
                         backgroundRepeat: "repeat",
@@ -53,9 +54,7 @@ export default function Home() {
                         Explore cards, build decks, and collect accessories.
                     </strong>
                 </div>
-            {/*</div>*/}
-        //</div>
+            </div>
+        </div>
     );
 }
-
-

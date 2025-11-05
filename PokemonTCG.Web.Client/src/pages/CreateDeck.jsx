@@ -48,7 +48,7 @@ export default function CreateDeck() {
         const fetchFilters = async () => {
             try {
                 const res = await fetch(`${API_URL}/api/card/filters`);
-                if (!res.ok) throw new Error("Error al obtener filtros");
+                if (!res.ok) throw new Error("Error to get filters");
                 const data = await res.json();
 
                 setAvailableRarities(
@@ -200,160 +200,7 @@ export default function CreateDeck() {
             alert("The deck couldn't download. Try again later");
         }
     };
-
-    //const handleImportFromText = async () => {
-    //    if (!importText.trim()) {
-    //        alert("⚠️ Paste the deck text first.");
-    //        return;
-    //    }
-
-    //    setLoading(true);
-
-    //    try {
-    //        const lines = importText
-    //            .split("\n")
-    //            .map((l) => l.trim())
-    //            .filter((l) => l && !/^pokémon|entrenador|energ[ií]a|cartas totales/i.test(l));
-
-    //        const parsed = [];
-    //        const regex =/^(\d+)\s+([\p{L}\p{N}\s'’"“”!.,\-:&éÉáÁóÓúÚíÍçÇ:&\-]+?(?:\s*\([\p{L}\p{N}\s'’"“”!.,\-:&éÉáÁóÓúÚíÍçÇ]+\))?)\s+\(?([A-Z0-9\-]{2,10})\)?(?:\s+(\d+))?$/u;
-
-
-    //        for (const line of lines) {
-    //            const m = regex.exec(line);
-    //            if (m) {
-    //                parsed.push({
-    //                    quantity: parseInt(m[1]),
-    //                    name: m[2].trim(),
-    //                    ptcgocode: m[3].trim(),
-    //                    number: m[4].trim(),
-    //                });
-    //            }
-    //        }
-
-    //        if (parsed.length === 0) {
-    //            alert("⚠️ No valid cards were detected.");
-    //            setLoading(false);
-    //            return;
-    //        }
-
-    //        const found = [];
-    //        const notFound = [];
-
-    //        for (const card of parsed) {
-    //            try {
-    //                const url = `${API_URL}/api/card/search?name=${encodeURIComponent(card.name)}&ptcgocode=${encodeURIComponent(card.ptcgocode)}&number=${encodeURIComponent(card.number)}&page=1&pageSize=10`;
-    //                const res = await fetch(url);
-    //                if (!res.ok) continue;
-
-    //                const data = await res.json();
-    //                const list = data.items ?? data.data ?? [];
-
-    //                const match =
-    //                    list.find((c) => String(c.number) === card.number) ||
-    //                    list.find((c) => (c.name || "").toLowerCase() === card.name.toLowerCase()) ||
-    //                    null;
-
-    //                if (match) {
-    //                    const foundCard = {
-    //                        ...match,
-    //                        quantity: card.quantity,
-    //                        ptcgocode: match?.ptcgoCode ?? match?.ptcgocode ?? match?.ptcgoCode ?? card.ptcgocode,
-    //                    };
-    //                    found.push(foundCard);
-    //                } else {
-    //                    notFound.push(card);
-    //                }
-    //            } catch (err) {
-    //                console.warn("Error searching card:", card, err);
-    //                notFound.push(card);
-    //            }
-    //        }
-
-    //        if (found.length === 0) {
-    //            alert("⚠️ No cards were found in the database.");
-    //            setLoading(false);
-    //            return;
-    //        }
-
-    //        setSelectedCards((prev) => {
-    //            const grouped = {};
-    //            for (const c of prev) {
-    //                grouped[c.cardId] = { ...c };
-    //            }
-
-    //            for (const card of found) {
-    //                const id = card.cardId ?? card.id ?? card.externalId ?? `${card.name}-${card.ptcgocode ?? card.ptcgoCode ?? card.number}`;
-    //                const isEnergy = (card.supertype ?? "").toLowerCase() === "energy";
-
-    //                if (!grouped[id]) {
-    //                    grouped[id] = {
-    //                        cardId: id,
-    //                        name: card.name,
-    //                        supertype: card.supertype,
-    //                        subtype: card.subtype,
-    //                        quantity: 0,
-    //                        ptcgocode: card.ptcgocode ?? card.ptcgoCode ?? "",
-    //                        number: card.number ?? "",
-    //                        imageLarge:
-    //                            card.imageLarge ??
-    //                            card.imageUrl ??
-    //                            (card.images && (card.images.large ?? card.images.small)) ??
-    //                            ""
-    //                    };
-    //                }
-
-    //                const totalNow = Object.values(grouped).reduce((sum, c) => sum + c.quantity, 0);
-    //                const remaining = 60 - totalNow;
-
-    //                if (remaining <= 0) {
-    //                    setMessage("⚠️ 60 - card limit reached. No more cards added..");
-    //                    break;
-    //                }
-
-    //                const canAdd = Math.min(
-    //                    isEnergy ? card.quantity : Math.min(4 - grouped[id].quantity, card.quantity),
-    //                    remaining
-    //                );
-
-    //                if (canAdd > 0) {
-    //                    grouped[id].quantity += canAdd;
-    //                    grouped[id].ptcgocode = grouped[id].ptcgocode || card.ptcgocode || card.ptcgoCode || "";
-    //                    grouped[id].number = grouped[id].number || (card.number ?? "");
-    //                    grouped[id].imageLarge = grouped[id].imageLarge || card.imageLarge || card.imageUrl || (card.images && (card.images.large ?? card.images.small)) || "";
-    //                }
-    //            }
-
-    //            const newDeck = Object.values(grouped);
-    //            const totalQty = newDeck.reduce((sum, c) => sum + c.quantity, 0);
-
-    //            const importedCount = found.reduce((sum, c) => sum + (c.quantity ?? 0), 0);
-
-    //            if (notFound.length > 0) {
-    //                const unknownList = notFound.map(
-    //                    nf => `• ${nf.quantity}x ${nf.name} (${nf.ptcgocode ?? "?"} ${nf.number ?? "?"})`
-    //                ).join("\n");
-    //                alert(
-    //                    `✅ ${importedCount} cards were imported (${found.length} types) (current total: ${totalQty}/60)\n\n❌ Could not be validated::\n${unknownList}`
-    //                );
-    //            } else {
-    //                alert(
-    //                    `✅ ${importedCount} cards were imported (${found.length} tipos) (current total: ${totalQty}/60)`
-    //                );
-    //            }
-
-    //            return newDeck;
-    //        });
-
-    //        setShowImportModal(false);
-    //        setImportText("");
-    //    } catch (err) {
-    //        console.error("❌ Import error: ", err);
-    //        alert("Error importing deck. View console.");
-    //    } finally {
-    //        setLoading(false);
-    //    }
-    //};
+        
     const handleImportFromText = async () => {
         if (!importText.trim()) {
             alert("⚠️ Pegá el texto del mazo antes de importar.");
@@ -507,7 +354,6 @@ export default function CreateDeck() {
         }
     };
 
-
     const handleSubmit = async () => {
         if (!name.trim()) {
             setMessage("⚠️ Please enter a deck name.");
@@ -632,7 +478,6 @@ export default function CreateDeck() {
             return prev;
         });
     };
-
     const clearSelection = () => {
         // Entradas generales
         setName("");
@@ -661,7 +506,6 @@ export default function CreateDeck() {
         setImportText("");
         setImportMessage(null);
     };
-
     const removeCard = (cardId) => {
         setSelectedCards((prev) => {
             const found = prev.find((c) => c.cardId === cardId);
@@ -698,7 +542,6 @@ export default function CreateDeck() {
             setLoading(false);
         }
     };
-
 
     return (
         <div className="page-content">           
@@ -872,7 +715,7 @@ export default function CreateDeck() {
                                             fontWeight: 600,
                                         }}
                                     >
-                                        Import
+                                        Import/Add
                                     </button>
 
                                     <button
@@ -1294,30 +1137,7 @@ export default function CreateDeck() {
                         </td>
                     </tr>
                 </tbody>
-            </table>
-
-
-
-            <br></br>
-            {/*{message && (*/}
-            {/*    <p*/}
-            {/*        style={{*/}
-            {/*            textAlign: "center",*/}
-            {/*            fontWeight: "bold",*/}
-            {/*            marginTop: "10px",*/}
-            {/*            marginBottom: "10px",*/}
-            {/*            color: message.includes("✅")*/}
-            {/*                ? "green"*/}
-            {/*                : message.includes("❌")*/}
-            {/*                    ? "red"*/}
-            {/*                    : message.includes("⚠️")*/}
-            {/*                        ? "orange"*/}
-            {/*                        : "blue",*/}
-            {/*        }}*/}
-            {/*    >*/}
-            {/*        {message}*/}
-            {/*    </p>*/}
-            {/*)}*/}
+            </table>                      
             <br></br>
 
             {/* Contenedor de cartas con scroll */}

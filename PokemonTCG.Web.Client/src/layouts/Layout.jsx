@@ -81,6 +81,11 @@ export default function TableMenu() {
                                         </Link>
                                     </li>
                                     <li className="px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
+                                        <Link to="/card/SearchCard" style={{ color: "#ca8a04", fontWeight: "500" }}>
+                                            Search
+                                        </Link>
+                                    </li>
+                                    <li className="px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
                                         <Link to="/card/favorites" style={{ color: "#ca8a04", fontWeight: "500" }}>
                                             Favorites
                                         </Link>
