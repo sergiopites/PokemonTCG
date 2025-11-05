@@ -107,7 +107,7 @@ export default function CreateDeck() {
                 });
 
                 const res = await fetch(`${API_URL}/api/card/search?${params.toString()}`);
-                if (!res.ok) throw new Error("Error searching for letters");
+                if (!res.ok) throw new Error("Error searching for cards");
                 const data = await res.json();
 
                 setCards(data?.items ?? []);
@@ -133,7 +133,7 @@ export default function CreateDeck() {
     const handleDownloadDeckPdf = async () => {
         try {
             if (!selectedCards || selectedCards.length === 0) {
-                alert("No hay cartas en el mazo para imprimir.");
+                alert("There are no cards in the deck to print..");
                 return;
             }
 
@@ -147,7 +147,7 @@ export default function CreateDeck() {
                         imageUrls.push(c.imageLarge);
                     }
                 } else {
-                    console.warn(`⚠️ Carta sin imagen: ${c.name}`);
+                    console.warn(`⚠️ Card without image: ${c.name}`);
                 }
             }
 
@@ -160,7 +160,7 @@ export default function CreateDeck() {
             }
 
             if (imageUrls.length === 0) {
-                alert("No se encontraron imágenes válidas para imprimir.");
+                alert("No images suitable for printing were found.");
                 return;
             }
 
@@ -179,7 +179,7 @@ export default function CreateDeck() {
             });
 
             if (!response.ok) {
-                throw new Error(`Error generando PDF: ${response.status} - ${response.statusText}`);
+                throw new Error(`Error generating PDF: ${response.status} - ${response.statusText}`);
             }
 
             // 🔹 Descargar PDF
@@ -193,45 +193,205 @@ export default function CreateDeck() {
 
             window.URL.revokeObjectURL(url);
 
-            console.log(`✅ Se generó correctamente el PDF con ${imageUrls.length} imágenes.`);
+            console.log(`✅ The PDF was generated successfully with ${imageUrls.length} images.`);
 
         } catch (error) {
-            console.error("❌ Error al generar el PDF del mazo:", error);
-            alert("No se pudo descargar el mazo. Intenta nuevamente.");
+            console.error("❌ Error generating PDF deck:", error);
+            alert("The deck couldn't download. Try again later");
         }
     };
 
+    //const handleImportFromText = async () => {
+    //    if (!importText.trim()) {
+    //        alert("⚠️ Paste the deck text first.");
+    //        return;
+    //    }
+
+    //    setLoading(true);
+
+    //    try {
+    //        const lines = importText
+    //            .split("\n")
+    //            .map((l) => l.trim())
+    //            .filter((l) => l && !/^pokémon|entrenador|energ[ií]a|cartas totales/i.test(l));
+
+    //        const parsed = [];
+    //        const regex =/^(\d+)\s+([\p{L}\p{N}\s'’"“”!.,\-:&éÉáÁóÓúÚíÍçÇ:&\-]+?(?:\s*\([\p{L}\p{N}\s'’"“”!.,\-:&éÉáÁóÓúÚíÍçÇ]+\))?)\s+\(?([A-Z0-9\-]{2,10})\)?(?:\s+(\d+))?$/u;
+
+
+    //        for (const line of lines) {
+    //            const m = regex.exec(line);
+    //            if (m) {
+    //                parsed.push({
+    //                    quantity: parseInt(m[1]),
+    //                    name: m[2].trim(),
+    //                    ptcgocode: m[3].trim(),
+    //                    number: m[4].trim(),
+    //                });
+    //            }
+    //        }
+
+    //        if (parsed.length === 0) {
+    //            alert("⚠️ No valid cards were detected.");
+    //            setLoading(false);
+    //            return;
+    //        }
+
+    //        const found = [];
+    //        const notFound = [];
+
+    //        for (const card of parsed) {
+    //            try {
+    //                const url = `${API_URL}/api/card/search?name=${encodeURIComponent(card.name)}&ptcgocode=${encodeURIComponent(card.ptcgocode)}&number=${encodeURIComponent(card.number)}&page=1&pageSize=10`;
+    //                const res = await fetch(url);
+    //                if (!res.ok) continue;
+
+    //                const data = await res.json();
+    //                const list = data.items ?? data.data ?? [];
+
+    //                const match =
+    //                    list.find((c) => String(c.number) === card.number) ||
+    //                    list.find((c) => (c.name || "").toLowerCase() === card.name.toLowerCase()) ||
+    //                    null;
+
+    //                if (match) {
+    //                    const foundCard = {
+    //                        ...match,
+    //                        quantity: card.quantity,
+    //                        ptcgocode: match?.ptcgoCode ?? match?.ptcgocode ?? match?.ptcgoCode ?? card.ptcgocode,
+    //                    };
+    //                    found.push(foundCard);
+    //                } else {
+    //                    notFound.push(card);
+    //                }
+    //            } catch (err) {
+    //                console.warn("Error searching card:", card, err);
+    //                notFound.push(card);
+    //            }
+    //        }
+
+    //        if (found.length === 0) {
+    //            alert("⚠️ No cards were found in the database.");
+    //            setLoading(false);
+    //            return;
+    //        }
+
+    //        setSelectedCards((prev) => {
+    //            const grouped = {};
+    //            for (const c of prev) {
+    //                grouped[c.cardId] = { ...c };
+    //            }
+
+    //            for (const card of found) {
+    //                const id = card.cardId ?? card.id ?? card.externalId ?? `${card.name}-${card.ptcgocode ?? card.ptcgoCode ?? card.number}`;
+    //                const isEnergy = (card.supertype ?? "").toLowerCase() === "energy";
+
+    //                if (!grouped[id]) {
+    //                    grouped[id] = {
+    //                        cardId: id,
+    //                        name: card.name,
+    //                        supertype: card.supertype,
+    //                        subtype: card.subtype,
+    //                        quantity: 0,
+    //                        ptcgocode: card.ptcgocode ?? card.ptcgoCode ?? "",
+    //                        number: card.number ?? "",
+    //                        imageLarge:
+    //                            card.imageLarge ??
+    //                            card.imageUrl ??
+    //                            (card.images && (card.images.large ?? card.images.small)) ??
+    //                            ""
+    //                    };
+    //                }
+
+    //                const totalNow = Object.values(grouped).reduce((sum, c) => sum + c.quantity, 0);
+    //                const remaining = 60 - totalNow;
+
+    //                if (remaining <= 0) {
+    //                    setMessage("⚠️ 60 - card limit reached. No more cards added..");
+    //                    break;
+    //                }
+
+    //                const canAdd = Math.min(
+    //                    isEnergy ? card.quantity : Math.min(4 - grouped[id].quantity, card.quantity),
+    //                    remaining
+    //                );
+
+    //                if (canAdd > 0) {
+    //                    grouped[id].quantity += canAdd;
+    //                    grouped[id].ptcgocode = grouped[id].ptcgocode || card.ptcgocode || card.ptcgoCode || "";
+    //                    grouped[id].number = grouped[id].number || (card.number ?? "");
+    //                    grouped[id].imageLarge = grouped[id].imageLarge || card.imageLarge || card.imageUrl || (card.images && (card.images.large ?? card.images.small)) || "";
+    //                }
+    //            }
+
+    //            const newDeck = Object.values(grouped);
+    //            const totalQty = newDeck.reduce((sum, c) => sum + c.quantity, 0);
+
+    //            const importedCount = found.reduce((sum, c) => sum + (c.quantity ?? 0), 0);
+
+    //            if (notFound.length > 0) {
+    //                const unknownList = notFound.map(
+    //                    nf => `• ${nf.quantity}x ${nf.name} (${nf.ptcgocode ?? "?"} ${nf.number ?? "?"})`
+    //                ).join("\n");
+    //                alert(
+    //                    `✅ ${importedCount} cards were imported (${found.length} types) (current total: ${totalQty}/60)\n\n❌ Could not be validated::\n${unknownList}`
+    //                );
+    //            } else {
+    //                alert(
+    //                    `✅ ${importedCount} cards were imported (${found.length} tipos) (current total: ${totalQty}/60)`
+    //                );
+    //            }
+
+    //            return newDeck;
+    //        });
+
+    //        setShowImportModal(false);
+    //        setImportText("");
+    //    } catch (err) {
+    //        console.error("❌ Import error: ", err);
+    //        alert("Error importing deck. View console.");
+    //    } finally {
+    //        setLoading(false);
+    //    }
+    //};
     const handleImportFromText = async () => {
         if (!importText.trim()) {
-            alert("⚠️ Paste the deck text first.");
+            alert("⚠️ Pegá el texto del mazo antes de importar.");
             return;
         }
 
         setLoading(true);
 
         try {
+            // Filtramos líneas irrelevantes (títulos, totales, etc.)
             const lines = importText
                 .split("\n")
                 .map((l) => l.trim())
                 .filter((l) => l && !/^pokémon|entrenador|energ[ií]a|cartas totales/i.test(l));
 
             const parsed = [];
-            const regex = /^(\d+)\s+([\p{L}\p{N}\s'’"“”!.,\-:&éÉáÁóÓúÚíÍçÇ()]+?)\s+([A-Z0-9\-]{2,10})\s+(\d+)$/u;
+
+            // 🔹 Regex robusto: soporta apóstrofos, paréntesis, etc.
+            const regex = /^(\d+)\s+([\p{L}\p{N}\s'’"“”\.\-:,&()]+?)\s*(?:\(?([A-Z0-9\-]{2,6})\)?(?:\s+(\d+))?)?$/u;
+
+            const unparsed = [];
 
             for (const line of lines) {
-                const m = regex.exec(line);
+                const m = line.match(regex);
                 if (m) {
                     parsed.push({
-                        quantity: parseInt(m[1]),
-                        name: m[2].trim(),
-                        ptcgocode: m[3].trim(),
-                        number: m[4].trim(),
+                        quantity: parseInt(m[1], 10),
+                        name: (m[2] || "").trim(),
+                        ptcgocode: (m[3] || "").trim(),
+                        number: (m[4] || "").trim(),
                     });
+                } else {
+                    unparsed.push(line);
                 }
             }
 
             if (parsed.length === 0) {
-                alert("⚠️ No valid cards were detected.");
+                alert("⚠️ No se detectaron cartas válidas para importar.");
                 setLoading(false);
                 return;
             }
@@ -257,7 +417,7 @@ export default function CreateDeck() {
                         const foundCard = {
                             ...match,
                             quantity: card.quantity,
-                            ptcgocode: match?.ptcgoCode ?? match?.ptcgocode ?? match?.ptcgoCode ?? card.ptcgocode,
+                            ptcgocode: match.ptcgocode ?? match.ptcgoCode ?? card.ptcgocode,
                         };
                         found.push(foundCard);
                     } else {
@@ -270,7 +430,7 @@ export default function CreateDeck() {
             }
 
             if (found.length === 0) {
-                alert("⚠️ No se encontró ninguna carta en la base de datos.");
+                alert("⚠️ No se encontraron cartas en la base de datos.");
                 setLoading(false);
                 return;
             }
@@ -282,7 +442,7 @@ export default function CreateDeck() {
                 }
 
                 for (const card of found) {
-                    const id = card.cardId ?? card.id ?? card.externalId ?? `${card.name}-${card.ptcgocode ?? card.ptcgoCode ?? card.number}`;
+                    const id = card.cardId ?? card.id ?? card.externalId ?? `${card.name}-${card.ptcgocode ?? card.number}`;
                     const isEnergy = (card.supertype ?? "").toLowerCase() === "energy";
 
                     if (!grouped[id]) {
@@ -304,9 +464,8 @@ export default function CreateDeck() {
 
                     const totalNow = Object.values(grouped).reduce((sum, c) => sum + c.quantity, 0);
                     const remaining = 60 - totalNow;
-
                     if (remaining <= 0) {
-                        setMessage("⚠️ Límite de 60 cartas alcanzado. No se agregaron más.");
+                        setMessage("⚠️ Límite de 60 cartas alcanzado. No se agregaron más cartas.");
                         break;
                     }
 
@@ -317,42 +476,37 @@ export default function CreateDeck() {
 
                     if (canAdd > 0) {
                         grouped[id].quantity += canAdd;
-                        grouped[id].ptcgocode = grouped[id].ptcgocode || card.ptcgocode || card.ptcgoCode || "";
-                        grouped[id].number = grouped[id].number || (card.number ?? "");
-                        grouped[id].imageLarge = grouped[id].imageLarge || card.imageLarge || card.imageUrl || (card.images && (card.images.large ?? card.images.small)) || "";
                     }
                 }
 
                 const newDeck = Object.values(grouped);
                 const totalQty = newDeck.reduce((sum, c) => sum + c.quantity, 0);
-
                 const importedCount = found.reduce((sum, c) => sum + (c.quantity ?? 0), 0);
 
-                if (notFound.length > 0) {
-                    const unknownList = notFound.map(
-                        nf => `• ${nf.quantity}x ${nf.name} (${nf.ptcgocode ?? "?"} ${nf.number ?? "?"})`
-                    ).join("\n");
-                    alert(
-                        `✅ Se importaron ${importedCount} cartas (${found.length} tipos) (total actual: ${totalQty}/60)\n\n❌ No se pudieron validar:\n${unknownList}`
-                    );
-                } else {
-                    alert(
-                        `✅ Se importaron ${importedCount} cartas (${found.length} tipos) (total actual: ${totalQty}/60)`
-                    );
+                let message = `✅ Se importaron ${importedCount} cartas (${found.length} tipos) — total actual: ${totalQty}/60`;
+
+                if (notFound.length > 0 || unparsed.length > 0) {
+                    const list = [
+                        ...notFound.map(nf => `• ${nf.quantity}x ${nf.name} (${nf.ptcgocode || "?"} ${nf.number || "?"})`),
+                        ...unparsed.map(u => `• ${u}`)
+                    ].join("\n");
+                    message += `\n\n❌ No se pudieron validar:\n${list}`;
                 }
 
+                alert(message);
                 return newDeck;
             });
 
             setShowImportModal(false);
             setImportText("");
         } catch (err) {
-            console.error("❌ Error al importar:", err);
-            alert("Error al importar mazo. Ver consola.");
+            console.error("❌ Error al importar: ", err);
+            alert("Error al importar el mazo. Revisa la consola.");
         } finally {
             setLoading(false);
         }
     };
+
 
     const handleSubmit = async () => {
         if (!name.trim()) {
@@ -547,358 +701,625 @@ export default function CreateDeck() {
 
 
     return (
-        <div className="page-content">
-            {/* Header y filtros */}
-            <table width="100%" className="tcg-table pokemon-tcg-text">
+        <div className="page-content">           
+            <table
+                width="100%"
+                className="tcg-table pokemon-tcg-text"
+                style={{
+                    borderCollapse: "separate",
+                    borderSpacing: "0 10px",
+                    width: "100%",
+                    background: "#f8fafc",
+                    borderRadius: "12px",
+                    overflow: "hidden",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                    padding: "8px",
+                }}
+            >
                 <tbody>
+                    {/* Title */}
                     <tr>
-                        <td colSpan="6" width="100%" style={{ textAlign: "center" }}>
-                            <h2 className="text-blue-700 font-bold text-2xl mb-4">Deck Builder</h2>
+                        <td colSpan="6" style={{ textAlign: "center", padding: "12px 8px 6px" }}>
+                        
+                            <h2 style={{ margin: 0, color: "#075985", fontSize: "1.25rem", fontWeight: 700 }}>
+                                Deck Builder
+                            </h2>
                         </td>
                     </tr>
+
+                    {/* Left inputs + Selected cards (right) */}
                     <tr>
-                        <td colSpan="2" style={{ verticalAlign: "top", paddingTop: "10px" }}>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-
-                                {/* 🔹 Name */}
-                                <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                                    <label style={{ width: "90px", textAlign: "right", marginTop: "6px" }}>Name:</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Deck name"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        style={{ padding: "8px", width: "300px" }}
-                                    />
-                                </div>
-
-                                {/* 🔹 Description */}
-                                <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                                    <label style={{ width: "90px", textAlign: "right", marginTop: "6px" }}>Description:</label>
-                                    <textarea
-                                        placeholder="Description"
-                                        value={description}
-                                        onChange={(e) => setDescription(e.target.value)}
-                                        style={{ padding: "8px", width: "300px", height: "80px" }}
-                                    />
-                                </div>
-                            </div>
-                        </td>
-
+                        {/* Left column: name + description */}
                         <td
-                            rowSpan="2"
                             colSpan="2"
                             style={{
                                 verticalAlign: "top",
-                                padding: "10px",
-                                minWidth: "450px",
-                                maxWidth: "600px",
-                                width: "auto",
+                                padding: "12px",
+                                background: "white",
+                                borderRight: "1px solid #e6edf3",
                             }}
                         >
-                            {/*Selected Cards*/}
-                            <h3 style={{ textAlign: "center", fontWeight: "bold", marginBottom: "8px" }}>Cards Deck</h3>
-
-                            {selectedCards.length === 0 ? (
-                                <p style={{ textAlign: "center", color: "#777" }}>No cards selected</p>
-                            ) : (
-                                <ul
+                            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                                <div
                                     style={{
-                                        listStyle: "none",
-                                        paddingLeft: 0,
-                                        margin: 0,
-                                        maxHeight: "260px",
-                                        overflowY: "auto",
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: "10px",
+                                        width: "100%",
+                                        maxWidth: "800px",
+                                        margin: "0 auto",
                                     }}
                                 >
-                                    {selectedCards.map((c) => (
-                                        <li
-                                            key={c.cardId}
+                                    {/* Deck Name */}
+                                    <div
+                                        style={{
+                                            display: "grid",
+                                            gridTemplateColumns: "100px 1fr",
+                                            alignItems: "center",
+                                            gap: "10px",
+                                        }}
+                                    >
+                                        <label
                                             style={{
-                                                display: "flex",
-                                                justifyContent: "space-between",
-                                                alignItems: "center", // ✅ centrado vertical
-                                                padding: "6px 8px",
-                                                borderBottom: "1px solid #eee",
-                                                fontSize: "0.95rem",
+                                                fontSize: "0.85rem",
+                                                color: "#334155",
+                                                fontWeight: "500",
+                                                textAlign: "right",
                                             }}
                                         >
-                                            <div style={{ flex: 1, textAlign: "left", display: "flex", gap: "8px", alignItems: "center" }}>
-                                                {c.imageLarge ? (
-                                                    <img
-                                                        src={c.imageLarge}
-                                                        alt={c.name ?? "card image"}
-                                                        style={{ width: "48px", height: "68px", objectFit: "cover", borderRadius: "4px", flexShrink: 0 }}
-                                                        onError={(e) => { e.target.style.display = "none"; }}
-                                                    />
-                                                ) : null}
+                                            Name:
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="Enter deck name"
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                            style={{
+                                                width: "100%",
+                                                padding: "8px 10px",
+                                                borderRadius: "8px",
+                                                border: "1px solid #d1d5db",
+                                                fontSize: "0.9rem",
+                                            }}
+                                        />
+                                    </div>
 
-                                                <div style={{ display: "flex", flexDirection: "column", marginLeft: c.imageLarge ? "8px" : "0" }}>
-                                                    <div style={{ fontWeight: 600, marginBottom: "2px" }}>{c.name}</div>
-                                                    <div style={{ color: "#555", fontSize: "0.85rem" }}>
-                                                        {c.supertype || "—"}
-                                                        {c.number ? ` • ${c.number}` : ""}
-                                                        {c.subtype ? ` • ${c.subtype}` : ""}
-                                                        {(c.ptcgocode ?? c.ptcgoCode) ? ` • ${c.ptcgocode ?? c.ptcgoCode}` : ""}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div
+                                    {/* Description */}
+                                    <div
+                                        style={{
+                                            display: "grid",
+                                            gridTemplateColumns: "100px 1fr",
+                                            alignItems: "start",
+                                            gap: "10px",
+                                        }}
+                                    >
+                                        <label
+                                            style={{
+                                                fontSize: "0.85rem",
+                                                color: "#334155",
+                                                fontWeight: "500",
+                                                textAlign: "right",
+                                                paddingTop: "4px",
+                                            }}
+                                        >
+                                            Description:
+                                        </label>
+                                        <textarea
+                                            placeholder="Describe your deck..."
+                                            value={description}
+                                            onChange={(e) => setDescription(e.target.value)}
+                                            style={{
+                                                width: "100%",
+                                                height: "76px",
+                                                padding: "8px 10px",
+                                                borderRadius: "8px",
+                                                border: "1px solid #d1d5db",
+                                                fontSize: "0.9rem",
+                                                resize: "vertical",
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+
+                                {/* compact action buttons */}
+                                <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "6px" }}>
+                                    <button
+                                        onClick={clearSelection}
+                                        style={{                                          
+                                            marginLeft: "auto",
+                                            padding: "6px 10px",
+                                            borderRadius: "6px",
+                                            border: "none",
+                                            background: "#10b981",
+                                            color: "white",
+                                            cursor: "pointer",
+                                            fontSize: "0.9rem",
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        Clear
+                                    </button>
+
+                                    <button
+                                        onClick={handleAutoDeck}
+                                        style={{
+                                            marginLeft: "auto",
+                                            padding: "6px 10px",
+                                            borderRadius: "6px",
+                                            border: "none",
+                                            background: "#10b981",
+                                            color: "white",
+                                            cursor: "pointer",
+                                            fontSize: "0.9rem",
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        Auto Build
+                                    </button>
+
+                                    <button
+                                        onClick={() => setShowImportModal(true)}
+                                        style={{
+                                            marginLeft: "auto",
+                                            padding: "6px 10px",
+                                            borderRadius: "6px",
+                                            border: "none",
+                                            background: "#10b981",
+                                            color: "white",
+                                            cursor: "pointer",
+                                            fontSize: "0.9rem",
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        Import
+                                    </button>
+
+                                    <button
+                                        onClick={handleSubmit}
+                                        style={{
+                                            marginLeft: "auto",
+                                            padding: "6px 10px",
+                                            borderRadius: "6px",
+                                            border: "none",
+                                            background: "#10b981",
+                                            color: "white",
+                                            cursor: "pointer",
+                                            fontSize: "0.9rem",
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        Save
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+
+                        {/* Right: Selected cards list (bigger column) */}
+                        <td
+                            colSpan="4"
+                            rowSpan="2"
+                            style={{
+                                verticalAlign: "top",
+                                padding: "12px",
+                                background: "white",
+                            }}
+                        >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                                <h3 style={{ margin: 0, color: "#1e40af", fontSize: "1rem", fontWeight: 700 }}>Selected Cards</h3>
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <span style={{ fontSize: "0.95rem", color: "#334155" }}>
+                                        Total: <strong>{selectedCards.reduce((s, c) => s + c.quantity, 0)}</strong>
+                                    </span>
+                                    <button
+                                        onClick={handleDownloadDeckPdf}
+                                        style={{
+                                            padding: "6px 10px",
+                                            borderRadius: "8px",
+                                            border: "1px solid #cbd5e1",
+                                            background: "#3b82f6",
+                                            color: "white",
+                                            cursor: "pointer",
+                                            fontSize: "0.85rem",
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        Export PDF
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div
+                                style={{
+                                    border: "1px solid #e6edf3",
+                                    borderRadius: "8px",
+                                    maxHeight: "320px",
+                                    overflowY: "auto",
+                                    padding: "6px",
+                                    background: "#fbfdff",
+                                }}
+                            >
+                                {selectedCards.length === 0 ? (
+                                    <p style={{ textAlign: "center", color: "#94a3b8", margin: "14px 0" }}>No cards selected</p>
+                                ) : (
+                                    <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                                        {selectedCards.map((c) => (
+                                            <li
+                                                key={c.cardId}
                                                 style={{
                                                     display: "flex",
+                                                    justifyContent: "space-between",
                                                     alignItems: "center",
+                                                    padding: "8px",
+                                                    borderBottom: "1px solid #f1f5f9",
                                                     gap: "8px",
-                                                    marginLeft: "12px",
                                                 }}
                                             >
-                                                {/* Cantidad */}
-                                                <div style={{ fontWeight: "700", color: "#1e40af", minWidth: "28px", textAlign: "center" }}>
-                                                    x{c.quantity}
+                                                <div style={{ display: "flex", gap: "10px", alignItems: "center", minWidth: 0 }}>
+                                                    {c.imageLarge ? (
+                                                        <img
+                                                            src={c.imageLarge}
+                                                            alt={c.name}
+                                                            style={{ width: "44px", height: "62px", objectFit: "cover", borderRadius: "6px", flexShrink: 0 }}
+                                                        />
+                                                    ) : null}
+                                                    <div style={{ minWidth: 0 }}>
+                                                        <div style={{ fontWeight: 600, fontSize: "0.95rem", color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "320px" }}>
+                                                            {c.name}
+                                                        </div>
+                                                        <div style={{ color: "#6b7280", fontSize: "0.8rem" }}>
+                                                            {c.supertype ?? "—"} {c.number ? ` • ${c.number}` : ""} {(c.ptcgocode ?? c.ptcgoCode) ? ` • ${c.ptcgocode ?? c.ptcgoCode}` : ""}
+                                                        </div>
+                                                    </div>
                                                 </div>
 
-                                                {/* Botones */}
-                                                <div style={{ display: "flex", gap: "4px" }}>
-                                                    {/* Decrementar */}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeCard(c.cardId)}
-                                                        style={{
-                                                            padding: "4px 6px",
-                                                            borderRadius: "4px",
-                                                            border: "1px solid #ddd",
-                                                            cursor: "pointer",
-                                                            backgroundColor: "#f3f4f6",
-                                                        }}
-                                                        title="Quitar una"
-                                                    >
-                                                        −
-                                                    </button>
+                                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                                    <span style={{ fontWeight: 700, color: "#2563eb", minWidth: "28px", textAlign: "center" }}>x{c.quantity}</span>
 
-                                                    {/* Incrementar */}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => toggleCard(c)}
-                                                        disabled={
-                                                            ((c.supertype ?? "").toLowerCase() !== "energy" && c.quantity >= 4) ||
-                                                            getTotalSelected(selectedCards) >= 60
-                                                        }
-                                                        style={{
-                                                            padding: "4px 6px",
-                                                            borderRadius: "4px",
-                                                            border: "1px solid #ddd",
-                                                            cursor: "pointer",
-                                                            backgroundColor: "#f3f4f6",
-                                                            opacity:
-                                                                ((c.supertype ?? "").toLowerCase() !== "energy" && c.quantity >= 4) ||
-                                                                    getTotalSelected(selectedCards) >= 60
-                                                                    ? 0.4
-                                                                    : 1,
-                                                        }}
-                                                        title="Agregar una"
-                                                    >
-                                                        +
-                                                    </button>
+                                                    {/* small control buttons */}
+                                                    <div style={{ display: "flex", gap: "6px" }}>
+                                                        <button
+                                                            onClick={() => removeCard(c.cardId)}
+                                                            style={{
+                                                                padding: "4px 6px",
+                                                                borderRadius: "6px",
+                                                                border: "1px solid #e6edf3",
+                                                                background: "#ffffff",
+                                                                cursor: "pointer",
+                                                                fontSize: "0.85rem",
+                                                            }}
+                                                            title="Remove one"
+                                                        >
+                                                            −
+                                                        </button>
 
-                                                    {/* Eliminar todas */}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => deleteCard(c.cardId)}
-                                                        style={{
-                                                            padding: "4px 6px",
-                                                            borderRadius: "4px",
-                                                            border: "1px solid #ddd",
-                                                            cursor: "pointer",
-                                                            backgroundColor: "#f3f4f6",
-                                                        }}
-                                                        title="Eliminar todas las copias"
-                                                    >
-                                                        ❌
-                                                    </button>
+                                                        <button
+                                                            onClick={() => toggleCard(c)}
+                                                            disabled={((c.supertype ?? "").toLowerCase() !== "energy" && c.quantity >= 4) || getTotalSelected(selectedCards) >= 60}
+                                                            style={{
+                                                                padding: "4px 6px",
+                                                                borderRadius: "6px",
+                                                                border: "1px solid #e6edf3",
+                                                                background: "#ffffff",
+                                                                cursor: "pointer",
+                                                                fontSize: "0.85rem",
+                                                                opacity: (((c.supertype ?? "").toLowerCase() !== "energy" && c.quantity >= 4) || getTotalSelected(selectedCards) >= 60) ? 0.45 : 1,
+                                                            }}
+                                                            title="Add one"
+                                                        >
+                                                            +
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => deleteCard(c.cardId)}
+                                                            style={{
+                                                                padding: "4px 6px",
+                                                                borderRadius: "6px",
+                                                                border: "1px solid #fee2e2",
+                                                                background: "#fff5f5",
+                                                                color: "#b91c1c",
+                                                                cursor: "pointer",
+                                                                fontSize: "0.85rem",
+                                                            }}
+                                                            title="Remove all"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", alignItems: "center" }}>
-                                <table width="100%">
-                                    <tbody>
-                                        <tr>
-                                            <td style={{ fontSize: "0.95rem" }}>
-                                                Total cards: <strong>{selectedCards.reduce((s, c) => s + c.quantity, 0)}</strong>
-                                            </td>
-                                            <td>
-                                                <button
-                                                    onClick={handleDownloadDeckPdf}
-                                                    style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #ddd" }}
-                                                >
-                                                    Export PDF
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
                             </div>
                         </td>
                     </tr>
-                    <tr><td> <button onClick={clearSelection} style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #ddd" }}>
-                        Clear
-                    </button>
-                        <button
-                            onClick={handleAutoDeck}
-                            style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #ddd" }}
-                        >
-                            Auto Build
-                        </button>
-                        <button
-                            onClick={() => setShowImportModal(true)}
-                            style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #ddd" }}
-                        >
-                            Import
-                        </button>
-                        <button
-                            onClick={handleSubmit}
-                            style={{ padding: "6px 10px", borderRadius: "6px", border: "1px solid #ddd" }}
-                        >
-                            Save
-                        </button>
-                    </td></tr>
-                </tbody>
-            </table>
-            <br></br>
-            <table width="100%">
-                <tbody>
+
+                    {/* Empty spacer row to ensure right panel doesn't overlap filters */}
                     <tr>
-                        <td width="17%">
-                            <input
-                                type="text"
-                                placeholder="🔍 Search by name"
-                                value={search}
-                                onChange={(e) => {
-                                    setPage(1);
-                                    setSearch(e.target.value);
-                                }}
-                                style={{ padding: "8px", width: "200px" }}
-                            />
-                        </td>
+                        <td style={{ height: "6px", background: "transparent" }}></td>
+                        <td></td>
+                    </tr>
 
-                        <td width="17%">
-                            <select
-                                value={setId}
-                                onChange={(e) => {
-                                    setPage(1);
-                                    setSetId(e.target.value);
+                    <tr>
+                        <td
+                            colSpan="6"
+                            style={{
+                                padding: "10px 14px",
+                                background: "#f8fafc",
+                                borderTop: "1px solid #e6edf3",
+                            }}
+                        >
+                            <div
+                                style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                                    gap: "10px 16px",
+                                    alignItems: "center",
+                                    justifyContent: "center",
                                 }}
-                                style={{ padding: "8px", width: "160px" }}
                             >
-                                <option value="">All Sets</option>
-                                {availableSets.map((s, index) => {
-                                    const id = s?.setId ?? s?.id ?? s?.ptcgoCode ?? index;
-                                    const name = s?.name ?? s?.setName ?? s?.serie ?? String(id);
-                                    return (
-                                        <option key={index} value={id}>
-                                            {name}
-                                        </option>
-                                    );
-                                })}
-                            </select>
-                        </td>
+                                {/* Name */}
+                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                    <label
+                                        style={{
+                                            fontSize: "0.85rem",
+                                            color: "#334155",
+                                            marginBottom: "4px",
+                                            fontWeight: "500",
+                                        }}
+                                    >
+                                        Name:
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Search by name"
+                                        value={search}
+                                        onChange={(e) => {
+                                            setPage(1);
+                                            setSearch(e.target.value);
+                                        }}
+                                        style={{
+                                            padding: "6px 8px",
+                                            width: "220px",
+                                            borderRadius: "6px",
+                                            border: "1px solid #d1d5db",
+                                            fontSize: "0.85rem",
+                                        }}
+                                    />
+                                </div>
 
-                        <td width="17%">
-                            <select
-                                value={supertype}
-                                onChange={(e) => {
-                                    setPage(1);
-                                    setSuperType(e.target.value);
-                                }}
-                                style={{ padding: "8px", width: "160px" }}
-                            >
-                                <option value="">All Super Types</option>
-                                {availableSuperTypes.map((ss, index) => (
-                                    <option key={index} value={ss}>
-                                        {ss}
-                                    </option>
-                                ))}
-                            </select>
-                        </td>
+                                {/* Set */}
+                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                    <label
+                                        style={{
+                                            fontSize: "0.85rem",
+                                            color: "#334155",
+                                            marginBottom: "4px",
+                                            fontWeight: "500",
+                                        }}
+                                    >
+                                        Set:
+                                    </label>
+                                    <select
+                                        value={setId}
+                                        onChange={(e) => {
+                                            setPage(1);
+                                            setSetId(e.target.value);
+                                        }}
+                                        style={{
+                                            padding: "6px 8px",
+                                            width: "220px",
+                                            borderRadius: "6px",
+                                            border: "1px solid #d1d5db",
+                                            fontSize: "0.85rem",
+                                        }}
+                                    >
+                                        <option value="">All Sets</option>
+                                        {availableSets.map((s, i) => {
+                                            const id = s?.setId ?? s?.id ?? s?.ptcgoCode ?? i;
+                                            const nm = s?.name ?? s?.setName ?? s?.serie ?? String(id);
+                                            return (
+                                                <option key={i} value={id}>
+                                                    {nm}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                </div>
 
-                        <td width="17%">
-                            <select
-                                value={type}
-                                onChange={(e) => {
-                                    setPage(1);
-                                    setType(e.target.value);
-                                }}
-                                style={{ padding: "8px", width: "160px" }}
-                            >
-                                <option value="">All Types</option>
-                                {availableTypes.map((t, index) => (
-                                    <option key={index} value={t}>
-                                        {t}
-                                    </option>
-                                ))}
-                            </select>
-                        </td>
+                                {/* Super Type */}
+                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                    <label
+                                        style={{
+                                            fontSize: "0.85rem",
+                                            color: "#334155",
+                                            marginBottom: "4px",
+                                            fontWeight: "500",
+                                        }}
+                                    >
+                                        Super Type:
+                                    </label>
+                                    <select
+                                        value={supertype}
+                                        onChange={(e) => {
+                                            setPage(1);
+                                            setSuperType(e.target.value);
+                                        }}
+                                        style={{
+                                            padding: "6px 8px",
+                                            width: "220px",
+                                            borderRadius: "6px",
+                                            border: "1px solid #d1d5db",
+                                            fontSize: "0.85rem",
+                                        }}
+                                    >
+                                        <option value="">All Super Types</option>
+                                        {availableSuperTypes.map((s, i) => (
+                                            <option key={i} value={s}>
+                                                {s}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                        <td width="17%">
-                            <select
-                                value={subtype}
-                                onChange={(e) => {
-                                    setPage(1);
-                                    setSubType(e.target.value);
-                                }}
-                                style={{ padding: "8px", width: "160px" }}
-                            >
-                                <option value="">All SubTypes</option>
-                                {availableSubTypes.map((b, index) => (
-                                    <option key={index} value={b}>
-                                        {b}
-                                    </option>
-                                ))}
-                            </select>
-                        </td>
+                                {/* Type */}
+                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                    <label
+                                        style={{
+                                            fontSize: "0.85rem",
+                                            color: "#334155",
+                                            marginBottom: "4px",
+                                            fontWeight: "500",
+                                        }}
+                                    >
+                                        Type:
+                                    </label>
+                                    <select
+                                        value={type}
+                                        onChange={(e) => {
+                                            setPage(1);
+                                            setType(e.target.value);
+                                        }}
+                                        style={{
+                                            padding: "6px 8px",
+                                            width: "220px",
+                                            borderRadius: "6px",
+                                            border: "1px solid #d1d5db",
+                                            fontSize: "0.85rem",
+                                        }}
+                                    >
+                                        <option value="">All Types</option>
+                                        {availableTypes.map((t, i) => (
+                                            <option key={i} value={t}>
+                                                {t}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                        <td width="17%">
-                            <select
-                                value={rarity}
-                                onChange={(e) => {
-                                    setPage(1);
-                                    setRarity(e.target.value);
-                                }}
-                                style={{ padding: "8px", width: "160px" }}
-                            >
-                                <option value="">All Rarities</option>
-                                {availableRarities.map((r, index) => (
-                                    <option key={index} value={r}>
-                                        {r}
-                                    </option>
-                                ))}
-                            </select>
+                                {/* Sub Type */}
+                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                    <label
+                                        style={{
+                                            fontSize: "0.85rem",
+                                            color: "#334155",
+                                            marginBottom: "4px",
+                                            fontWeight: "500",
+                                        }}
+                                    >
+                                        Sub Type:
+                                    </label>
+                                    <select
+                                        value={subtype}
+                                        onChange={(e) => {
+                                            setPage(1);
+                                            setSubType(e.target.value);
+                                        }}
+                                        style={{
+                                            padding: "6px 8px",
+                                            width: "220px",
+                                            borderRadius: "6px",
+                                            border: "1px solid #d1d5db",
+                                            fontSize: "0.85rem",
+                                        }}
+                                    >
+                                        <option value="">All SubTypes</option>
+                                        {availableSubTypes.map((b, i) => (
+                                            <option key={i} value={b}>
+                                                {b}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Rarity */}
+                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                    <label
+                                        style={{
+                                            fontSize: "0.85rem",
+                                            color: "#334155",
+                                            marginBottom: "4px",
+                                            fontWeight: "500",
+                                        }}
+                                    >
+                                        Rarity:
+                                    </label>
+                                    <select
+                                        value={rarity}
+                                        onChange={(e) => {
+                                            setPage(1);
+                                            setRarity(e.target.value);
+                                        }}
+                                        style={{
+                                            padding: "6px 8px",
+                                            width: "220px",
+                                            borderRadius: "6px",
+                                            border: "1px solid #d1d5db",
+                                            fontSize: "0.85rem",
+                                        }}
+                                    >
+                                        <option value="">All Rarities</option>
+                                        {availableRarities.map((r, i) => (
+                                            <option key={i} value={r}>
+                                                {r}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colSpan="6" style={{ textAlign: "center", padding: "12px 8px 6px" }}>
+                            {message && (
+                                <p
+                                    style={{
+                                        textAlign: "center",
+                                        fontWeight: "bold",
+                                        marginTop: "10px",
+                                        marginBottom: "10px",
+                                        color: message.includes("✅")
+                                            ? "green"
+                                            : message.includes("❌")
+                                                ? "red"
+                                                : message.includes("⚠️")
+                                                    ? "orange"
+                                                    : "blue",
+                                    }}
+                                >
+                                    {message}
+                                </p>
+                            )}
                         </td>
                     </tr>
                 </tbody>
             </table>
 
-            {message && (
-                <p
-                    style={{
-                        textAlign: "center",
-                        fontWeight: "bold",
-                        marginTop: "10px",
-                        marginBottom: "10px",
-                        color: message.includes("✅")
-                            ? "green"
-                            : message.includes("❌")
-                                ? "red"
-                                : message.includes("⚠️")
-                                    ? "orange"
-                                    : "blue",
-                    }}
-                >
-                    {message}
-                </p>
-            )}
+
+
             <br></br>
+            {/*{message && (*/}
+            {/*    <p*/}
+            {/*        style={{*/}
+            {/*            textAlign: "center",*/}
+            {/*            fontWeight: "bold",*/}
+            {/*            marginTop: "10px",*/}
+            {/*            marginBottom: "10px",*/}
+            {/*            color: message.includes("✅")*/}
+            {/*                ? "green"*/}
+            {/*                : message.includes("❌")*/}
+            {/*                    ? "red"*/}
+            {/*                    : message.includes("⚠️")*/}
+            {/*                        ? "orange"*/}
+            {/*                        : "blue",*/}
+            {/*        }}*/}
+            {/*    >*/}
+            {/*        {message}*/}
+            {/*    </p>*/}
+            {/*)}*/}
+            <br></br>
+
             {/* Contenedor de cartas con scroll */}
             <div className="all-cards">
                 <div className="card-grid-search">
@@ -1018,7 +1439,7 @@ export default function CreateDeck() {
                             <textarea
                                 value={importText}
                                 onChange={(e) => setImportText(e.target.value)}
-                                placeholder="Pegá aquí el texto del mazo exportado desde TCG Live..."
+                                placeholder="Paste the deck text exported from TCG Live here..."
                                 style={{
                                     width: "100%",
                                     height: "200px",

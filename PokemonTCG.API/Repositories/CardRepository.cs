@@ -170,7 +170,7 @@ namespace PokemonTCG.API.Repositories
         }
         public async Task<PagedResult<CardDetailDTO>> SearchCardsAsync(string? name = null, string? setId = null, string? ptcgoCode = null,
                                                                        string? supertype = null, string? subtype = null, string? type = null,
-                                                                       string? rarity = null, int page = 1, int pageSize = 55)
+                                                                       string? rarity = null, int page = 1, int pageSize = 55, string? number = null)
         {
             var query = _context.Cards
                 .AsNoTracking()
@@ -199,10 +199,13 @@ namespace PokemonTCG.API.Repositories
             if (!string.IsNullOrWhiteSpace(rarity))
                 query = query.Where(c => c.Rarity == rarity);
 
+            if (!string.IsNullOrWhiteSpace(number))
+                query = query.Where(c => c.Number == number);
+
             var totalCount = await query.CountAsync();
 
             var items = await query
-                //.OrderBy(c => c.Name)
+                //.OrderBy(c => c.Number)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(c => new CardDetailDTO

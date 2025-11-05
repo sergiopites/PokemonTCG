@@ -36,7 +36,7 @@ export default function SaveSets() {
 
     return (
         <div className="page-content">
-            <table border="0" className="tcg-table pokemon-tcg-text" width="100%">
+            <table className="tcg-table pokemon-tcg-text" width="100%">
                 <tbody>
                     <tr>
                         <td style={{ textAlign: "center", verticalAlign: "middle" }}>

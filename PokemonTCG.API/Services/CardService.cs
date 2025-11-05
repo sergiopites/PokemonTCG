@@ -401,9 +401,9 @@ namespace PokemonTCG.API.Services
         }
         public async Task<PagedResult<CardDetailDTO>> SearchCardsAsync(string? name = null, string? setId = null, string? ptcgoCode = null,
                                                                        string? supertype = null, string? subtype = null, string? type = null,
-                                                                       string? rarity = null, int page = 1, int pageSize = 55)
+                                                                       string? rarity = null, int page = 1, int pageSize = 55, string? number = null)
         {
-            return await _cardRepository.SearchCardsAsync(name, setId, ptcgoCode, supertype, subtype, type, rarity, page, pageSize);
+            return await _cardRepository.SearchCardsAsync(name, setId, ptcgoCode, supertype, subtype, type, rarity, page, pageSize, number);
         }
         public async Task<CardDetailResponse> GetCardsByRarityAsync(string rarity, int page = 1, int pageSize = 55)
         {

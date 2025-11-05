@@ -60,13 +60,13 @@ namespace PokemonTCG.API.Controllers
         }
         // 🔹 Endpoint general de búsqueda (multifiltro)
         [HttpGet("search")]
-        public async Task<IActionResult> Search([FromQuery] string? name,[FromQuery] string? setId,[FromQuery] string? supertype, [FromQuery] string? ptcgoCode,
+        public async Task<IActionResult> Search([FromQuery] string? name, [FromQuery] string? number,[FromQuery] string? setId,[FromQuery] string? supertype, [FromQuery] string? ptcgoCode,
                                                 [FromQuery] string? subtype,[FromQuery] string? type,[FromQuery] string? rarity,
                                                 [FromQuery] int page = 1,[FromQuery] int pageSize = 55)
         {
             var result = await _cardService.SearchCardsAsync(name: name, setId: setId, ptcgoCode: ptcgoCode,
                                                           supertype: supertype, subtype: subtype, type: type,
-                                                          rarity: rarity, page: page, pageSize: pageSize);      
+                                                          rarity: rarity, page: page, pageSize: pageSize, number: number);      
 
             return Ok(result);
         }
