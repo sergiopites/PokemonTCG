@@ -20,15 +20,8 @@ namespace PokemonTCG.Printer
         }
 
         private const double CardWidth = 63 / 25.4 * 72;   // ≈ 178.58 puntos
-        private const double CardHeight = 88 / 25.4 * 72;  // ≈ 249.45 puntos
-
-
-        // DPI de impresión
-        private const int Dpi = 300;
-
-        /// <summary>
-        /// Descarga una imagen desde un endpoint y la guarda en PDF en una ubicación elegida por el usuario.
-        /// </summary>
+        private const double CardHeight = 88 / 25.4 * 72;  // ≈ 249.45 puntos                
+        private const int Dpi = 300;        
         public async Task SaveImageFromEndpointAsync(string imageUrl, string fileName)
         {
             var configuration = new ConfigurationBuilder()
@@ -51,11 +44,7 @@ namespace PokemonTCG.Printer
             {
                 throw ex;
             }
-        }
-
-        /// <summary>
-        /// Inserta una imagen en un archivo PDF.
-        /// </summary>
+        }                
         private void SaveImageToPdf(byte[] imageBytes, string filePath, string fileName)
         {
             using var ms = new MemoryStream(imageBytes);
@@ -176,11 +165,11 @@ namespace PokemonTCG.Printer
 
             using var document = new PdfDocument();
 
-            const double pageWidth = 595.28;   // A4 width en puntos (210mm)
-            const double pageHeight = 841.89;  // A4 height en puntos (297mm)
+            const double pageWidth = 595.28;
+            const double pageHeight = 841.89;
             const int cols = 3;
             const int rows = 3;
-            const double margin = 20;          // márgenes externos
+            const double margin = 20;
 
             double availableWidth = pageWidth - margin * 2;
             double availableHeight = pageHeight - margin * 2;
@@ -205,8 +194,7 @@ namespace PokemonTCG.Printer
                 }
 
                 byte[] imageBytes;
-
-                // Descargar imagen
+                                
                 try
                 {
                     if (validatedUri.Scheme.ToLower() == "file")
@@ -226,7 +214,6 @@ namespace PokemonTCG.Printer
                     continue;
                 }
 
-                // Convertir a PNG
                 using var ms = new MemoryStream(imageBytes);
                 using var image = await Image.LoadAsync(ms);
                 using var msConverted = new MemoryStream();
@@ -235,7 +222,6 @@ namespace PokemonTCG.Printer
 
                 using var img = XImage.FromStream(msConverted);
 
-                // Crear nueva página si es necesario
                 if (index % (cols * rows) == 0)
                 {
                     page = document.AddPage();
@@ -261,93 +247,6 @@ namespace PokemonTCG.Printer
             using var stream = new MemoryStream();
             document.Save(stream, false);
             return stream.ToArray();
-        }
-
-        //public async Task<byte[]> SaveDeckImagesToPdfAsync(List<string> imageUrls, string fileName)
-        //{
-        //    if (imageUrls == null || imageUrls.Count == 0)
-        //        throw new ArgumentException("Image URLs cannot be empty.");
-
-        //    // 🧮 Medidas oficiales Pokémon
-        //    const double mmToPt = 2.8346;
-        //    const double cardWidth = 63 * mmToPt;   // 179 pt
-        //    const double cardHeight = 88 * mmToPt;  // 249 pt
-        //    const double spacing = 2 * mmToPt;      // 2 mm entre cartas
-
-        //    const int cardsPerRow = 10;
-        //    const int cardsPerColumn = 11;
-
-        //    double sheetWidth = (cardWidth * cardsPerRow) + (spacing * (cardsPerRow - 1));
-        //    double sheetHeight = (cardHeight * cardsPerColumn) + (spacing * (cardsPerColumn - 1));
-
-        //    using var document = new PdfDocument();
-        //    int totalCards = imageUrls.Count;
-        //    int cardsPerSheet = cardsPerRow * cardsPerColumn;
-
-        //    for (int i = 0; i < totalCards; i += cardsPerSheet)
-        //    {
-        //        var page = document.AddPage();
-        //        page.Width = sheetWidth;
-        //        page.Height = sheetHeight;
-
-        //        using var gfx = XGraphics.FromPdfPage(page);
-
-        //        var batch = imageUrls.Skip(i).Take(cardsPerSheet).ToList();
-        //        int index = 0;
-
-        //        foreach (var rawUrl in batch)
-        //        {
-        //            var url = rawUrl?.Trim();
-        //            if (string.IsNullOrEmpty(url))
-        //                continue;
-
-        //            byte[] imageBytes;
-
-        //            if (Uri.TryCreate(url, UriKind.Absolute, out var validatedUri))
-        //            {
-        //                if (validatedUri.Scheme.ToLower() == "file")
-        //                {
-        //                    imageBytes = await File.ReadAllBytesAsync(validatedUri.LocalPath);
-        //                }
-        //                else
-        //                {
-        //                    var response = await _httpClient.GetAsync(validatedUri);
-        //                    response.EnsureSuccessStatusCode();
-        //                    imageBytes = await response.Content.ReadAsByteArrayAsync();
-        //                }
-        //            }
-        //            else
-        //            {
-        //                continue;
-        //            }
-
-        //            using var ms = new MemoryStream(imageBytes);
-        //            using var image = await Image.LoadAsync(ms);
-        //            using var msConverted = new MemoryStream();
-        //            await image.SaveAsync(msConverted, new PngEncoder());
-        //            msConverted.Position = 0;
-
-        //            using var img = XImage.FromStream(msConverted);
-
-        //            int row = index / cardsPerRow;
-        //            int col = index % cardsPerRow;
-
-        //            double x = col * (cardWidth + spacing);
-        //            double y = row * (cardHeight + spacing);
-
-        //            gfx.DrawImage(img, x, y, cardWidth, cardHeight);
-        //            index++;
-        //        }
-        //    }
-
-        //    if (document.PageCount == 0)
-        //        throw new Exception("No se generó ninguna plancha: todas las descargas fallaron.");
-
-        //    using var stream = new MemoryStream();
-        //    document.Save(stream, false);
-        //    return stream.ToArray();
-        //}
-
-
+        }   
     }
 }
