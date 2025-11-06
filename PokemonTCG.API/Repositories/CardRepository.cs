@@ -16,7 +16,6 @@ namespace PokemonTCG.API.Repositories
             _context = context;
             _logger = logger;
         }
-
         public async Task<List<Card>> GetCardsByNumberAsync(string number)
         {
             try
@@ -122,7 +121,6 @@ namespace PokemonTCG.API.Repositories
                 return new List<Models.Card>();
             }
         }
-
         public async Task<List<CardDetailDTO>> GetCardsBySet(string setId)
         {
             try
@@ -173,6 +171,7 @@ namespace PokemonTCG.API.Repositories
                                                                        string? rarity = null, int page = 1, int pageSize = 55, string? number = null)
         {
             var query = _context.Cards
+                .OrderBy(c => c.Number)
                 .AsNoTracking()
                 .Include(c => c.Set)
                 .Include(c => c.CardImage)
@@ -204,8 +203,7 @@ namespace PokemonTCG.API.Repositories
 
             var totalCount = await query.CountAsync();
 
-            var items = await query
-                //.OrderBy(c => c.Number)
+            var items = await query               
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(c => new CardDetailDTO
@@ -239,9 +237,7 @@ namespace PokemonTCG.API.Repositories
                 .Distinct()
                 .OrderBy(r => r)
                 .ToListAsync();
-        }
-
-        // 🔹 Obtener tipos únicos (Types puede ser lista separada por comas)
+        }        
         public async Task<IEnumerable<string>> GetDistinctTypesAsync()
         {
             return await _context.Cards
@@ -250,9 +246,7 @@ namespace PokemonTCG.API.Repositories
                 .Distinct()
                 .OrderBy(t => t)
                 .ToListAsync();
-        }
-
-        // 🔹 Obtener supertypes únicos
+        }       
         public async Task<IEnumerable<string>> GetDistinctSupertypesAsync()
         {
             return await _context.Cards
@@ -433,7 +427,6 @@ namespace PokemonTCG.API.Repositories
             _logger.LogInformation($"Card: {existingCard.ExternalId} was updated successfully.");
             return existingCard;
         }
-
         private void MergeCollection<T, TKey>(
            ICollection<T> existingCollection,
            IEnumerable<T> incomingCollection,

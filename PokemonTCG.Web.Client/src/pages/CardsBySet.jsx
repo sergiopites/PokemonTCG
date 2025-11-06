@@ -54,12 +54,7 @@ export default function CardsBySet() {
                                             src={cards[0].setImage}
                                             alt={cards[0].setName}
                                             className="set-image"
-                                        />
-                                        <div style={{ marginTop: "20px", textAlign: "center", verticalAlign: "middle" }}>
-                                            <Link to="/allsets">
-                                                <p> ⬅️ Back</p>
-                                            </Link>
-                                        </div>
+                                        />                                       
                                     </div>
                                 )}
                             </td>

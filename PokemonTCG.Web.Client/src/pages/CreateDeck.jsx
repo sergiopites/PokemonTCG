@@ -42,8 +42,7 @@ export default function CreateDeck() {
             return JSON.stringify(item);
         });
     };
-
-    // Cargar filtros (tipos, rarezas, etc.)
+        
     useEffect(() => {
         const fetchFilters = async () => {
             try {
@@ -67,14 +66,14 @@ export default function CreateDeck() {
                     )
                 );
             } catch (err) {
-                console.error("Error cargando filtros:", err);
+                console.error("Error loading filters:", err);
             }
         };
 
         fetchFilters();
     }, [API_URL]);
 
-    // Cargar sets
+    
     useEffect(() => {
         const fetchSets = async () => {
             try {
@@ -89,9 +88,7 @@ export default function CreateDeck() {
         };
 
         fetchSets();
-    }, [API_URL]);
-
-    // Buscar cartas (con filtros)
+    }, [API_URL]);    
     useEffect(() => {
         const fetchCards = async () => {
             try {
@@ -121,13 +118,12 @@ export default function CreateDeck() {
 
         fetchCards();
     }, [search, setId, supertype, type, subtype, rarity, page, API_URL]);
-
     useEffect(() => {
-        // Cargar la configuración al montar el componente
+       
         fetch("/config.json")
             .then(res => res.json())
             .then(config => setBackImagePath(config.backImagePath))
-            .catch(() => setBackImagePath("")); // Valor por defecto si falla
+            .catch(() => setBackImagePath(""));
     }, []);
 
     const handleDownloadDeckPdf = async () => {
@@ -200,27 +196,23 @@ export default function CreateDeck() {
             alert("The deck couldn't download. Try again later");
         }
     };
-        
+
     const handleImportFromText = async () => {
         if (!importText.trim()) {
-            alert("⚠️ Pegá el texto del mazo antes de importar.");
+            alert("⚠️ Paste the deck text before importing.");
             return;
         }
 
         setLoading(true);
 
-        try {
-            // Filtramos líneas irrelevantes (títulos, totales, etc.)
+        try {            
             const lines = importText
                 .split("\n")
                 .map((l) => l.trim())
                 .filter((l) => l && !/^pokémon|entrenador|energ[ií]a|cartas totales/i.test(l));
 
-            const parsed = [];
-
-            // 🔹 Regex robusto: soporta apóstrofos, paréntesis, etc.
+            const parsed = [];            
             const regex = /^(\d+)\s+([\p{L}\p{N}\s'’"“”\.\-:,&()]+?)\s*(?:\(?([A-Z0-9\-]{2,6})\)?(?:\s+(\d+))?)?$/u;
-
             const unparsed = [];
 
             for (const line of lines) {
@@ -238,7 +230,7 @@ export default function CreateDeck() {
             }
 
             if (parsed.length === 0) {
-                alert("⚠️ No se detectaron cartas válidas para importar.");
+                alert("⚠️ No valid import documents were detected.");
                 setLoading(false);
                 return;
             }
@@ -271,13 +263,13 @@ export default function CreateDeck() {
                         notFound.push(card);
                     }
                 } catch (err) {
-                    console.warn("Error buscando carta:", card, err);
+                    console.warn("Error searching card:", card, err);
                     notFound.push(card);
                 }
             }
 
             if (found.length === 0) {
-                alert("⚠️ No se encontraron cartas en la base de datos.");
+                alert("⚠️ No cards found on database.");
                 setLoading(false);
                 return;
             }
@@ -312,7 +304,7 @@ export default function CreateDeck() {
                     const totalNow = Object.values(grouped).reduce((sum, c) => sum + c.quantity, 0);
                     const remaining = 60 - totalNow;
                     if (remaining <= 0) {
-                        setMessage("⚠️ Límite de 60 cartas alcanzado. No se agregaron más cartas.");
+                        setMessage("⚠️ 60 cards limited reached. No more cards added.");
                         break;
                     }
 
@@ -330,14 +322,14 @@ export default function CreateDeck() {
                 const totalQty = newDeck.reduce((sum, c) => sum + c.quantity, 0);
                 const importedCount = found.reduce((sum, c) => sum + (c.quantity ?? 0), 0);
 
-                let message = `✅ Se importaron ${importedCount} cartas (${found.length} tipos) — total actual: ${totalQty}/60`;
+                let message = `✅ ${importedCount} cards were imported (${found.length} types) — current total: ${totalQty}/60`;
 
                 if (notFound.length > 0 || unparsed.length > 0) {
                     const list = [
                         ...notFound.map(nf => `• ${nf.quantity}x ${nf.name} (${nf.ptcgocode || "?"} ${nf.number || "?"})`),
                         ...unparsed.map(u => `• ${u}`)
                     ].join("\n");
-                    message += `\n\n❌ No se pudieron validar:\n${list}`;
+                    message += `\n\n❌ Couldn't validated':\n${list}`;
                 }
 
                 alert(message);
@@ -347,8 +339,8 @@ export default function CreateDeck() {
             setShowImportModal(false);
             setImportText("");
         } catch (err) {
-            console.error("❌ Error al importar: ", err);
-            alert("Error al importar el mazo. Revisa la consola.");
+            console.error("❌ Error to import: ", err);
+            alert("Error importing deck. Check the console.");
         } finally {
             setLoading(false);
         }
@@ -412,12 +404,9 @@ export default function CreateDeck() {
             setMessage("❌ Error creating deck. Check console for details.");
         }
     };
-
-    // función utilitaria: total actual de cartas seleccionadas
+    
     const getTotalSelected = (arr) =>
-        arr.reduce((s, c) => s + (Number(c.quantity) || 0), 0);
-
-    // toggleCard mejorado (ahora incluye ptcgocode)
+        arr.reduce((s, c) => s + (Number(c.quantity) || 0), 0);    
     const toggleCard = (cardOrId) => {
         const id = typeof cardOrId === "string" ? cardOrId : cardOrId.cardId;
         const cardObj = typeof cardOrId === "object"
@@ -524,7 +513,6 @@ export default function CreateDeck() {
         // eliminar completamente (botón ❌)
         setSelectedCards((prev) => prev.filter((c) => c.cardId !== cardId));
     };
-    //const [autoDeckCount, setAutoDeckCount] = useState(1);   
     const handleAutoDeck = async () => {
         try {
             setLoading(true);
@@ -544,7 +532,7 @@ export default function CreateDeck() {
     };
 
     return (
-        <div className="page-content">           
+        <div className="page-content">
             <table
                 width="100%"
                 className="tcg-table pokemon-tcg-text"
@@ -559,20 +547,17 @@ export default function CreateDeck() {
                     padding: "8px",
                 }}
             >
-                <tbody>
-                    {/* Title */}
+                <tbody>                 
                     <tr>
                         <td colSpan="6" style={{ textAlign: "center", padding: "12px 8px 6px" }}>
-                        
+
                             <h2 style={{ margin: 0, color: "#075985", fontSize: "1.25rem", fontWeight: 700 }}>
                                 Deck Builder
                             </h2>
                         </td>
                     </tr>
-
-                    {/* Left inputs + Selected cards (right) */}
-                    <tr>
-                        {/* Left column: name + description */}
+                    
+                    <tr>                        
                         <td
                             colSpan="2"
                             style={{
@@ -593,7 +578,6 @@ export default function CreateDeck() {
                                         margin: "0 auto",
                                     }}
                                 >
-                                    {/* Deck Name */}
                                     <div
                                         style={{
                                             display: "grid",
@@ -625,9 +609,7 @@ export default function CreateDeck() {
                                                 fontSize: "0.9rem",
                                             }}
                                         />
-                                    </div>
-
-                                    {/* Description */}
+                                    </div>                                    
                                     <div
                                         style={{
                                             display: "grid",
@@ -663,13 +645,10 @@ export default function CreateDeck() {
                                         />
                                     </div>
                                 </div>
-
-
-                                {/* compact action buttons */}
                                 <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "6px" }}>
                                     <button
                                         onClick={clearSelection}
-                                        style={{                                          
+                                        style={{
                                             marginLeft: "auto",
                                             padding: "6px 10px",
                                             borderRadius: "6px",
@@ -737,8 +716,6 @@ export default function CreateDeck() {
                                 </div>
                             </div>
                         </td>
-
-                        {/* Right: Selected cards list (bigger column) */}
                         <td
                             colSpan="4"
                             rowSpan="2"
@@ -806,20 +783,54 @@ export default function CreateDeck() {
                                                             style={{ width: "44px", height: "62px", objectFit: "cover", borderRadius: "6px", flexShrink: 0 }}
                                                         />
                                                     ) : null}
-                                                    <div style={{ minWidth: 0 }}>
-                                                        <div style={{ fontWeight: 600, fontSize: "0.95rem", color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "320px" }}>
+                                                    <div
+                                                        style={{
+                                                            minWidth: 0,
+                                                            display: "flex",
+                                                            flexDirection: "column",
+                                                            alignItems: "flex-start",
+                                                            textAlign: "left",
+                                                        }}
+                                                    >
+                                                        <div
+                                                            style={{
+                                                                fontWeight: 600,
+                                                                fontSize: "0.95rem",
+                                                                color: "#0f172a",
+                                                                whiteSpace: "nowrap",
+                                                                overflow: "hidden",
+                                                                textOverflow: "ellipsis",
+                                                                maxWidth: "280px",
+                                                                width: "100%",
+                                                            }}
+                                                        >
                                                             {c.name}
                                                         </div>
-                                                        <div style={{ color: "#6b7280", fontSize: "0.8rem" }}>
-                                                            {c.supertype ?? "—"} {c.number ? ` • ${c.number}` : ""} {(c.ptcgocode ?? c.ptcgoCode) ? ` • ${c.ptcgocode ?? c.ptcgoCode}` : ""}
+
+                                                        <div
+                                                            style={{
+                                                                color: "#6b7280",
+                                                                fontSize: "0.8rem",
+                                                                width: "100%",
+                                                                textAlign: "left",
+                                                                whiteSpace: "nowrap",
+                                                                overflow: "hidden",
+                                                                textOverflow: "ellipsis",
+                                                                maxWidth: "280px",
+                                                            }}
+                                                        >
+                                                            {c.supertype ?? "—"} {c.number ? ` • ${c.number}` : ""}{" "}
+                                                            {(c.ptcgocode ?? c.ptcgoCode)
+                                                                ? ` • ${c.ptcgocode ?? c.ptcgoCode}`
+                                                                : ""}
                                                         </div>
                                                     </div>
+
                                                 </div>
 
                                                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                                                     <span style={{ fontWeight: 700, color: "#2563eb", minWidth: "28px", textAlign: "center" }}>x{c.quantity}</span>
 
-                                                    {/* small control buttons */}
                                                     <div style={{ display: "flex", gap: "6px" }}>
                                                         <button
                                                             onClick={() => removeCard(c.cardId)}
@@ -878,7 +889,6 @@ export default function CreateDeck() {
                         </td>
                     </tr>
 
-                    {/* Empty spacer row to ensure right panel doesn't overlap filters */}
                     <tr>
                         <td style={{ height: "6px", background: "transparent" }}></td>
                         <td></td>
@@ -901,8 +911,7 @@ export default function CreateDeck() {
                                     alignItems: "center",
                                     justifyContent: "center",
                                 }}
-                            >
-                                {/* Name */}
+                            >                               
                                 <div style={{ display: "flex", flexDirection: "column" }}>
                                     <label
                                         style={{
@@ -931,8 +940,7 @@ export default function CreateDeck() {
                                         }}
                                     />
                                 </div>
-
-                                {/* Set */}
+                               
                                 <div style={{ display: "flex", flexDirection: "column" }}>
                                     <label
                                         style={{
@@ -970,8 +978,7 @@ export default function CreateDeck() {
                                         })}
                                     </select>
                                 </div>
-
-                                {/* Super Type */}
+                               
                                 <div style={{ display: "flex", flexDirection: "column" }}>
                                     <label
                                         style={{
@@ -1005,8 +1012,7 @@ export default function CreateDeck() {
                                         ))}
                                     </select>
                                 </div>
-
-                                {/* Type */}
+                               
                                 <div style={{ display: "flex", flexDirection: "column" }}>
                                     <label
                                         style={{
@@ -1039,9 +1045,7 @@ export default function CreateDeck() {
                                             </option>
                                         ))}
                                     </select>
-                                </div>
-
-                                {/* Sub Type */}
+                                </div>                                
                                 <div style={{ display: "flex", flexDirection: "column" }}>
                                     <label
                                         style={{
@@ -1075,8 +1079,7 @@ export default function CreateDeck() {
                                         ))}
                                     </select>
                                 </div>
-
-                                {/* Rarity */}
+                                
                                 <div style={{ display: "flex", flexDirection: "column" }}>
                                     <label
                                         style={{
@@ -1137,10 +1140,9 @@ export default function CreateDeck() {
                         </td>
                     </tr>
                 </tbody>
-            </table>                      
+            </table>
             <br></br>
 
-            {/* Contenedor de cartas con scroll */}
             <div className="all-cards">
                 <div className="card-grid-search">
                     {cards.map((card) => (
@@ -1150,8 +1152,6 @@ export default function CreateDeck() {
                             style={{
 
                                 border: selectedCards.some((c) => c.cardId === card.cardId),
-                                //? "2px solid limegreen"
-                                //: "1px solid gray",
                                 position: "relative",
                                 cursor: "pointer",
                             }}
@@ -1164,7 +1164,6 @@ export default function CreateDeck() {
                                 {card?.name}
                             </p>
 
-                            {/* Mostrar contador si fue seleccionada */}
                             {selectedCards.some((c) => c.cardId === card.cardId) && (
                                 <div
                                     style={{
@@ -1245,9 +1244,9 @@ export default function CreateDeck() {
                                 background: "lightskyblue",
                                 padding: "20px",
                                 borderRadius: "12px",
-                                maxWidth: "700px",   // 🔹 más ancho
+                                maxWidth: "700px",
                                 width: "90%",
-                                margin: "0 auto",    // 🔹 centrado
+                                margin: "0 auto",
                                 boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
                             }}
                         >
