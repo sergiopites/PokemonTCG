@@ -1,19 +1,21 @@
 ﻿import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import "../global.css";
 
 export default function SearchCard() {
-    const API_URL = import.meta.env.VITE_API_URL || "";    
+    const API_URL = import.meta.env.VITE_API_URL || "";
 
     const [availableRarities, setAvailableRarities] = useState([]);
     const [availableSubTypes, setAvailableSubTypes] = useState([]);
     const [availableTypes, setAvailableTypes] = useState([]);
     const [availableSuperTypes, setAvailableSuperTypes] = useState([]);
     const [availableSets, setAvailableSets] = useState([]);
+
     const [cards, setCards] = useState([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [search, setSearch] = useState("");
+    const [number, setNumber] = useState(""); // 🔹 NUEVO estado para el filtro Number
     const [setId, setSetId] = useState("");
     const [supertype, setSuperType] = useState("");
     const [type, setType] = useState("");
@@ -29,14 +31,15 @@ export default function SearchCard() {
             for (const k of keysToCheck) {
                 if (item[k] && typeof item[k] === "string") return item[k];
             }
-            // fallback: if object has a single primitive value, use it
-            const primitive = Object.values(item).find((v) => typeof v === "string" || typeof v === "number");
+            const primitive = Object.values(item).find(
+                (v) => typeof v === "string" || typeof v === "number"
+            );
             if (primitive != null) return String(primitive);
             return JSON.stringify(item);
         });
     };
 
-    // Cargar filtros (tipos, rarezas, etc.)
+    // Cargar filtros
     useEffect(() => {
         const fetchFilters = async () => {
             try {
@@ -60,7 +63,7 @@ export default function SearchCard() {
                     )
                 );
             } catch (err) {
-                console.error("Error cargando filtros:", err);
+                console.error("Error loading filters:", err);
             }
         };
 
@@ -90,6 +93,7 @@ export default function SearchCard() {
             try {
                 const params = new URLSearchParams({
                     name: search || "",
+                    number: number || "", // 🔹 ahora se envía correctamente al backend
                     setId: setId || "",
                     subtype: subtype || "",
                     type: type || "",
@@ -113,8 +117,7 @@ export default function SearchCard() {
         };
 
         fetchCards();
-    }, [search, setId, supertype, type, subtype, rarity, page, API_URL]);
-
+    }, [search, number, setId, supertype, type, subtype, rarity, page, API_URL]);
 
     return (
         <div className="page-content">
@@ -133,15 +136,15 @@ export default function SearchCard() {
                 }}
             >
                 <tbody>
-                    {/* Title */}
                     <tr>
                         <td colSpan="6" style={{ textAlign: "center", padding: "12px 8px 6px" }}>
-
                             <h2 style={{ margin: 0, color: "#075985", fontSize: "1.25rem", fontWeight: 700 }}>
                                 Search Card
                             </h2>
                         </td>
                     </tr>
+
+                    {/* Filtros */}
                     <tr>
                         <td
                             colSpan="6"
@@ -160,16 +163,29 @@ export default function SearchCard() {
                                     justifyContent: "center",
                                 }}
                             >
-                                {/* Name */}
                                 <div style={{ display: "flex", flexDirection: "column" }}>
-                                    <label
-                                        style={{
-                                            fontSize: "0.85rem",
-                                            color: "#334155",
-                                            marginBottom: "4px",
-                                            fontWeight: "500",
+                                    <label style={{ fontSize: "0.85rem", color: "#334155", marginBottom: "4px", fontWeight: "500" }}>
+                                        Number:
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Search by number"
+                                        value={number}
+                                        onChange={(e) => {
+                                            setPage(1);
+                                            setNumber(e.target.value);
                                         }}
-                                    >
+                                        style={{
+                                            padding: "6px 8px",
+                                            width: "220px",
+                                            borderRadius: "6px",
+                                            border: "1px solid #d1d5db",
+                                            fontSize: "0.85rem",
+                                        }}
+                                    />
+                                </div>
+                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                    <label style={{ fontSize: "0.85rem", color: "#334155", marginBottom: "4px", fontWeight: "500" }}>
                                         Name:
                                     </label>
                                     <input
@@ -189,17 +205,8 @@ export default function SearchCard() {
                                         }}
                                     />
                                 </div>
-
-                                {/* Set */}
                                 <div style={{ display: "flex", flexDirection: "column" }}>
-                                    <label
-                                        style={{
-                                            fontSize: "0.85rem",
-                                            color: "#334155",
-                                            marginBottom: "4px",
-                                            fontWeight: "500",
-                                        }}
-                                    >
+                                    <label style={{ fontSize: "0.85rem", color: "#334155", marginBottom: "4px", fontWeight: "500" }}>
                                         Set:
                                     </label>
                                     <select
@@ -231,14 +238,7 @@ export default function SearchCard() {
 
                                 {/* Super Type */}
                                 <div style={{ display: "flex", flexDirection: "column" }}>
-                                    <label
-                                        style={{
-                                            fontSize: "0.85rem",
-                                            color: "#334155",
-                                            marginBottom: "4px",
-                                            fontWeight: "500",
-                                        }}
-                                    >
+                                    <label style={{ fontSize: "0.85rem", color: "#334155", marginBottom: "4px", fontWeight: "500" }}>
                                         Super Type:
                                     </label>
                                     <select
@@ -266,14 +266,7 @@ export default function SearchCard() {
 
                                 {/* Type */}
                                 <div style={{ display: "flex", flexDirection: "column" }}>
-                                    <label
-                                        style={{
-                                            fontSize: "0.85rem",
-                                            color: "#334155",
-                                            marginBottom: "4px",
-                                            fontWeight: "500",
-                                        }}
-                                    >
+                                    <label style={{ fontSize: "0.85rem", color: "#334155", marginBottom: "4px", fontWeight: "500" }}>
                                         Type:
                                     </label>
                                     <select
@@ -301,14 +294,7 @@ export default function SearchCard() {
 
                                 {/* Sub Type */}
                                 <div style={{ display: "flex", flexDirection: "column" }}>
-                                    <label
-                                        style={{
-                                            fontSize: "0.85rem",
-                                            color: "#334155",
-                                            marginBottom: "4px",
-                                            fontWeight: "500",
-                                        }}
-                                    >
+                                    <label style={{ fontSize: "0.85rem", color: "#334155", marginBottom: "4px", fontWeight: "500" }}>
                                         Sub Type:
                                     </label>
                                     <select
@@ -336,14 +322,7 @@ export default function SearchCard() {
 
                                 {/* Rarity */}
                                 <div style={{ display: "flex", flexDirection: "column" }}>
-                                    <label
-                                        style={{
-                                            fontSize: "0.85rem",
-                                            color: "#334155",
-                                            marginBottom: "4px",
-                                            fontWeight: "500",
-                                        }}
-                                    >
+                                    <label style={{ fontSize: "0.85rem", color: "#334155", marginBottom: "4px", fontWeight: "500" }}>
                                         Rarity:
                                     </label>
                                     <select
@@ -370,44 +349,47 @@ export default function SearchCard() {
                                 </div>
                             </div>
                         </td>
-                    </tr>                   
+                    </tr>
                 </tbody>
             </table>
-            <br></br>
+
+            {/* Cards */}
+            <br />
             <div className="all-cards">
                 <div className="card-grid-search">
                     {cards.map((card) => (
                         <div key={card.cardId} className="card-item">
                             <Link to={`/card/cardid/${card.cardId}`}>
-                                <img
-                                    src={card.imageLarge}
-                                    alt={card.name}
-                                    className="card-image"
-                                />
+                                <img src={card.imageLarge} alt={card.name} className="card-image" />
                             </Link>
                         </div>
                     ))}
                 </div>
             </div>
-            <div style={{
-                gap: "8px",
-                position: "fixed",
-                bottom: 0,
-                left: 0,
-                width: "100%",
-                background: "#ffffff",
-                borderTop: "2px solid #3b82f6",
-                padding: "3px 0",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                boxShadow: "0 -2px 8px rgba(0,0,0,0.1)",
-                zIndex: 1000,
-            }}>
+
+            {/* Pagination */}
+            <div
+                style={{
+                    gap: "8px",
+                    position: "fixed",
+                    bottom: 0,
+                    left: 0,
+                    width: "100%",
+                    background: "#ffffff",
+                    borderTop: "2px solid #3b82f6",
+                    padding: "3px 0",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    boxShadow: "0 -2px 8px rgba(0,0,0,0.1)",
+                    zIndex: 1000,
+                }}
+            >
                 <button
                     disabled={page <= 1}
                     onClick={() => setPage((p) => p - 1)}
-                    style={{ padding: "4px 6px", borderRadius: "4px", border: "1px solid #ddd" }}>
+                    style={{ padding: "4px 6px", borderRadius: "4px", border: "1px solid #ddd" }}
+                >
                     ⬅
                 </button>
 
@@ -426,4 +408,4 @@ export default function SearchCard() {
         </div>
     );
 }
-    
+

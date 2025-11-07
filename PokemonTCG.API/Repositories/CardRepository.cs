@@ -10,7 +10,6 @@ namespace PokemonTCG.API.Repositories
     {
         private readonly AppDbContext _context;
         private readonly ILogger<ICardRepository> _logger;
-
         public CardRepository(AppDbContext context, ILogger<ICardRepository> logger)
         {
             _context = context;

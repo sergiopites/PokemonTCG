@@ -57,8 +57,7 @@ namespace PokemonTCG.API.Controllers
             }
 
             return Ok(cards);
-        }
-        // 🔹 Endpoint general de búsqueda (multifiltro)
+        }        
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] string? name, [FromQuery] string? number,[FromQuery] string? setId,[FromQuery] string? supertype, [FromQuery] string? ptcgoCode,
                                                 [FromQuery] string? subtype,[FromQuery] string? type,[FromQuery] string? rarity,

@@ -20,7 +20,7 @@ export default function CardDetail() {
                 );
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
-                console.log("👉 Card recibido:", data);
+                console.log("👉 Card received:", data);
 
                 setCard(data[0]);
 
@@ -334,7 +334,7 @@ export default function CardDetail() {
                     )}
                     <table width="100%" className="section">
                         <tr>
-                           <td style={{ textAlign: "center", verticalAlign: "middle" }} >
+                            <td style={{ textAlign: "center", verticalAlign: "middle" }} >
                                 {card.tcgPlayerUrl && (
                                     <p className="mt-4 text-right">
                                         <button
@@ -352,8 +352,8 @@ export default function CardDetail() {
                                     </button>
                                 </p>
                             </td>
-
-                        </tr></table>
+                        </tr>
+                    </table>
                 </div>
             </div>
         </div >
