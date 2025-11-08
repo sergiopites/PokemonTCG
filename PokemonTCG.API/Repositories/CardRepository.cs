@@ -165,17 +165,25 @@ namespace PokemonTCG.API.Repositories
                 return new List<CardDetailDTO>();
             }
         }
-        public async Task<PagedResult<CardDetailDTO>> SearchCardsAsync(string? name = null, string? setId = null, string? ptcgoCode = null,
-                                                                       string? supertype = null, string? subtype = null, string? type = null,
-                                                                       string? rarity = null, int page = 1, int pageSize = 55, string? number = null)
+        public async Task<PagedResult<CardDetailDTO>> SearchCardsAsync(
+    string? name = null,
+    string? setId = null,
+    string? ptcgoCode = null,
+    string? supertype = null,
+    string? subtype = null,
+    string? type = null,
+    string? rarity = null,
+    int page = 1,
+    int pageSize = 55,
+    string? number = null)
         {
             var query = _context.Cards
-                .OrderBy(c => c.Number)
                 .AsNoTracking()
                 .Include(c => c.Set)
                 .Include(c => c.CardImage)
                 .AsQueryable();
 
+            // FILTROS
             if (!string.IsNullOrWhiteSpace(name))
                 query = query.Where(c => EF.Functions.Like(c.Name, $"%{name}%"));
 
@@ -199,10 +207,17 @@ namespace PokemonTCG.API.Repositories
 
             if (!string.IsNullOrWhiteSpace(number))
                 query = query.Where(c => c.Number == number);
+            
+            query = query
+                .OrderBy(c =>
+                    EF.Functions.Like(c.Number, "%[^0-9]%")
+                        ? int.MaxValue
+                        : (int?)Convert.ToInt32(c.Number))
+                .ThenBy(c => c.Number);
 
             var totalCount = await query.CountAsync();
 
-            var items = await query               
+            var items = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(c => new CardDetailDTO
@@ -216,7 +231,8 @@ namespace PokemonTCG.API.Repositories
                     SetId = c.Set.SetId,
                     Type = c.Types,
                     Rarity = c.Rarity,
-                    ImageLarge = c.CardImage != null ? c.CardImage.Large : null
+                    ImageLarge = c.CardImage != null ? c.CardImage.Large : null,
+                    Number = c.Number
                 })
                 .ToListAsync();
 
@@ -228,6 +244,7 @@ namespace PokemonTCG.API.Repositories
                 Items = items
             };
         }
+
         public async Task<IEnumerable<string>> GetDistinctRaritiesAsync()
         {
             return await _context.Cards
@@ -236,7 +253,7 @@ namespace PokemonTCG.API.Repositories
                 .Distinct()
                 .OrderBy(r => r)
                 .ToListAsync();
-        }        
+        }
         public async Task<IEnumerable<string>> GetDistinctTypesAsync()
         {
             return await _context.Cards
@@ -245,7 +262,7 @@ namespace PokemonTCG.API.Repositories
                 .Distinct()
                 .OrderBy(t => t)
                 .ToListAsync();
-        }       
+        }
         public async Task<IEnumerable<string>> GetDistinctSupertypesAsync()
         {
             return await _context.Cards
@@ -255,8 +272,6 @@ namespace PokemonTCG.API.Repositories
                 .OrderBy(s => s)
                 .ToListAsync();
         }
-
-        // 🔹 Obtener subtypes únicos (pueden venir como lista)
         public async Task<IEnumerable<string>> GetDistinctSubtypesAsync()
         {
             return (await _context.Cards

@@ -113,8 +113,7 @@ namespace PokemonTCG.Printer
                 byte[] imageBytes;
 
                 if (validatedUri.Scheme.ToLower() == "file")
-                {
-                    // Read from local file
+                {                    
                     try
                     {
                         imageBytes = await File.ReadAllBytesAsync(validatedUri.LocalPath);
@@ -126,15 +125,13 @@ namespace PokemonTCG.Printer
                     }
                 }
                 else
-                {
-                    // Download from web
+                {                    
                     var response = await _httpClient.GetAsync(validatedUri);
                     _logger?.LogInformation("Status {Status} para {Url}", response.StatusCode, url);
                     response.EnsureSuccessStatusCode();
                     imageBytes = await response.Content.ReadAsByteArrayAsync();
                 }
-
-                // Usar ImageSharp para re-encode a PNG
+                
                 using var ms = new MemoryStream(imageBytes);
                 using var image = await Image.LoadAsync(ms);
                 using var msConverted = new MemoryStream();
