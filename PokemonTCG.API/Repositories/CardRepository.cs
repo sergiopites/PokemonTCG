@@ -207,7 +207,7 @@ namespace PokemonTCG.API.Repositories
 
             if (!string.IsNullOrWhiteSpace(number))
                 query = query.Where(c => c.Number == number);
-            
+
             query = query
                 .OrderBy(c =>
                     EF.Functions.Like(c.Number, "%[^0-9]%")
@@ -519,6 +519,5 @@ namespace PokemonTCG.API.Repositories
             foreach (var rem in toRemove)
                 existingCollection.Remove(rem);
         }
-
     }
 }

@@ -616,4 +616,13 @@ html, body {
 .pokemon-tcg-text {
     animation: fadeIn 0.8s ease-in-out;
 }
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
 

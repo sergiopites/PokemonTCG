@@ -24,7 +24,8 @@ export default function CreateDeck() {
     const [showImportModal, setShowImportModal] = useState(false);
     const [importText, setImportText] = useState("");
     const [importMessage, setImportMessage] = useState(null);
-    const [backImagePath, setBackImagePath] = useState("");
+    const [backImagePath, setBackImagePath] = useState("");    
+    const [exporting, setExporting] = useState(false);
 
     const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -42,7 +43,7 @@ export default function CreateDeck() {
             return JSON.stringify(item);
         });
     };
-        
+
     useEffect(() => {
         const fetchFilters = async () => {
             try {
@@ -73,7 +74,6 @@ export default function CreateDeck() {
         fetchFilters();
     }, [API_URL]);
 
-    
     useEffect(() => {
         const fetchSets = async () => {
             try {
@@ -88,7 +88,7 @@ export default function CreateDeck() {
         };
 
         fetchSets();
-    }, [API_URL]);    
+    }, [API_URL]);
     useEffect(() => {
         const fetchCards = async () => {
             try {
@@ -119,7 +119,7 @@ export default function CreateDeck() {
         fetchCards();
     }, [search, setId, supertype, type, subtype, rarity, page, API_URL]);
     useEffect(() => {
-       
+
         fetch("/config.json")
             .then(res => res.json())
             .then(config => setBackImagePath(config.backImagePath))
@@ -128,17 +128,18 @@ export default function CreateDeck() {
 
     const handleDownloadDeckPdf = async () => {
         try {
+            setExporting(true); // 🔹 Mostrar spinner
+
             if (!selectedCards || selectedCards.length === 0) {
                 alert("There are no cards in the deck to print..");
+                setExporting(false);
                 return;
             }
 
-            // 🔹 Crear una lista de URLs de imágenes (frentes + reverso)
+            // 🔹 Crear lista de imágenes
             const imageUrls = [];
-
             for (const c of selectedCards) {
                 if (c.imageLarge) {
-                    // Repetimos según la cantidad de copias
                     for (let i = 0; i < (c.quantity || 1); i++) {
                         imageUrls.push(c.imageLarge);
                     }
@@ -147,7 +148,6 @@ export default function CreateDeck() {
                 }
             }
 
-            // 🔹 Agregar reversos si corresponde
             if (backImagePath) {
                 const total = imageUrls.length;
                 for (let i = 0; i < total; i++) {
@@ -157,12 +157,13 @@ export default function CreateDeck() {
 
             if (imageUrls.length === 0) {
                 alert("No images suitable for printing were found.");
+                setExporting(false);
                 return;
             }
 
-            // 🔹 Nombre del archivo
-            const deckName = name?.trim() || "Deck";
-            const safeFileName = deckName.replace(/\s+/g, "_").replace(/[^\w\-\.]/g, "");
+            // 🔹 Nombre del archivo: usar el campo deckName
+            const deckFileName = name?.trim() || "Deck";
+            const safeFileName = deckFileName.replace(/\s+/g, "_").replace(/[^\w\-\.]/g, "");
 
             // 🔹 Enviar al backend
             const response = await fetch(`${API_URL}/api/printer/generatedeck`, {
@@ -181,22 +182,20 @@ export default function CreateDeck() {
             // 🔹 Descargar PDF
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
-
             const a = document.createElement("a");
             a.href = url;
             a.download = `${safeFileName}.pdf`;
             a.click();
-
             window.URL.revokeObjectURL(url);
 
-            console.log(`✅ The PDF was generated successfully with ${imageUrls.length} images.`);
-
+            console.log(`✅ PDF generated successfully: ${safeFileName}.pdf`);
         } catch (error) {
             console.error("❌ Error generating PDF deck:", error);
-            alert("The deck couldn't download. Try again later");
+            alert("The deck couldn't download. Try again later.");
+        } finally {
+            setExporting(false);
         }
     };
-
     const handleImportFromText = async () => {
         if (!importText.trim()) {
             alert("⚠️ Paste the deck text before importing.");
@@ -205,13 +204,13 @@ export default function CreateDeck() {
 
         setLoading(true);
 
-        try {            
+        try {
             const lines = importText
                 .split("\n")
                 .map((l) => l.trim())
                 .filter((l) => l && !/^pokémon|entrenador|energ[ií]a|cartas totales/i.test(l));
 
-            const parsed = [];            
+            const parsed = [];
             const regex = /^(\d+)\s+([\p{L}\p{N}\s'’"“”\.\-:,&()]+?)\s*(?:\(?([A-Z0-9\-]{2,6})\)?(?:\s+(\d+))?)?$/u;
             const unparsed = [];
 
@@ -345,8 +344,8 @@ export default function CreateDeck() {
             setLoading(false);
         }
     };
-
     const handleSubmit = async () => {
+        console.debug("name: " + name);
         if (!name.trim()) {
             setMessage("⚠️ Please enter a deck name.");
             return;
@@ -395,7 +394,7 @@ export default function CreateDeck() {
                 throw new Error(text || "Error creating deck");
             }
 
-            setMessage("✅ Deck created successfully!");
+            setMessage(`✅ Deck ${name} created successfully!`);
             setName("");
             setDescription("");
             setSelectedCards([]);
@@ -404,9 +403,8 @@ export default function CreateDeck() {
             setMessage("❌ Error creating deck. Check console for details.");
         }
     };
-    
     const getTotalSelected = (arr) =>
-        arr.reduce((s, c) => s + (Number(c.quantity) || 0), 0);    
+        arr.reduce((s, c) => s + (Number(c.quantity) || 0), 0);
     const toggleCard = (cardOrId) => {
         const id = typeof cardOrId === "string" ? cardOrId : cardOrId.cardId;
         const cardObj = typeof cardOrId === "object"
@@ -473,8 +471,7 @@ export default function CreateDeck() {
         setDescription("");
         setError("");
         setMessage("");
-        setLoading(false);
-
+        setLoading(false);        
         // Listas y resultados
         /* setCards([]);*/
         setSelectedCards([]);
@@ -517,14 +514,37 @@ export default function CreateDeck() {
         try {
             setLoading(true);
             clearSelection();
-            const res = await fetch(`${API_URL}/api/deck/autodeck`);
-            const autoDeck = await res.json();
-            autoDeck.forEach(card => toggleCard(card));
+            setMessage("");
 
-            setMessage("✅ Deck created successfully (60 cards).");
+            const res = await fetch(`${API_URL}/api/deck/autodeck`);
+            const data = await res.json();
+            console.log("AutoDeck full response:", data);
+
+            // Validar estructura esperada
+            if (!data || !Array.isArray(data.cards)) {
+                console.error("❌ Invalid /autodeck response structure:", data);
+                throw new Error("❌ Invalid response from /autodeck — expected { cards: [...] }");
+            }
+
+            const autoDeck = data.cards;
+
+            // Agregar todas las cartas al mazo
+            autoDeck.forEach((card) => toggleCard(card));
+
+            // ---- 🧩 Determinar Pokémon predominante y tipo ----
+            const dominantPokemon =
+                (Array.isArray(data.powerPokémon) && data.powerPokémon.length > 0)
+                    ? data.powerPokémon[0]
+                    : "Unknown";
+
+            const dominantType = data.dominantType ?? "Unknown";
+
+            // ---- 💾 Actualizar nombre del mazo ----
+            setName(`${dominantPokemon} - ${dominantType}`);
+            setMessage(`✅ Deck ${dominantPokemon} - ${dominantType} created successfully (60 cards)`);
 
         } catch (err) {
-            console.error(err);
+            console.error("Error in handleAutoDeck:", err);
             setMessage("❌ Error building deck.");
         } finally {
             setLoading(false);
@@ -547,7 +567,7 @@ export default function CreateDeck() {
                     padding: "8px",
                 }}
             >
-                <tbody>                 
+                <tbody>
                     <tr>
                         <td colSpan="6" style={{ textAlign: "center", padding: "12px 8px 6px" }}>
 
@@ -556,8 +576,8 @@ export default function CreateDeck() {
                             </h2>
                         </td>
                     </tr>
-                    
-                    <tr>                        
+
+                    <tr>
                         <td
                             colSpan="2"
                             style={{
@@ -609,7 +629,7 @@ export default function CreateDeck() {
                                                 fontSize: "0.9rem",
                                             }}
                                         />
-                                    </div>                                    
+                                    </div>
                                     <div
                                         style={{
                                             display: "grid",
@@ -665,6 +685,7 @@ export default function CreateDeck() {
 
                                     <button
                                         onClick={handleAutoDeck}
+                                        disabled={loading}
                                         style={{
                                             marginLeft: "auto",
                                             padding: "6px 10px",
@@ -677,9 +698,24 @@ export default function CreateDeck() {
                                             fontWeight: 600,
                                         }}
                                     >
-                                        Auto Build
+                                        {loading ? (
+                                            <>
+                                                <div
+                                                    style={{
+                                                        width: "18px",
+                                                        height: "18px",
+                                                        border: "2px solid rgba(255,255,255,0.5)",
+                                                        borderTopColor: "#fff",
+                                                        borderRadius: "50%",
+                                                        animation: "spin 0.8s linear infinite",
+                                                    }}
+                                                />
+                                                Building deck...
+                                            </>
+                                        ) : (
+                                            "AutoDeck"
+                                        )}
                                     </button>
-
                                     <button
                                         onClick={() => setShowImportModal(true)}
                                         style={{
@@ -733,18 +769,38 @@ export default function CreateDeck() {
                                     </span>
                                     <button
                                         onClick={handleDownloadDeckPdf}
+                                        disabled={exporting}
                                         style={{
-                                            padding: "6px 10px",
+                                            padding: "8px 14px",
                                             borderRadius: "8px",
-                                            border: "1px solid #cbd5e1",
-                                            background: "#3b82f6",
-                                            color: "white",
-                                            cursor: "pointer",
-                                            fontSize: "0.85rem",
-                                            fontWeight: 600,
+                                            backgroundColor: exporting ? "#9ca3af" : "#2563eb",
+                                            color: "#fff",
+                                            fontWeight: "600",
+                                            border: "none",
+                                            cursor: exporting ? "not-allowed" : "pointer",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "8px",
                                         }}
                                     >
-                                        Export PDF
+                                        {exporting ? (
+                                            <>
+                                                <div
+                                                    className="spinner"
+                                                    style={{
+                                                        border: "2px solid #f3f3f3",
+                                                        borderTop: "2px solid white",
+                                                        borderRadius: "50%",
+                                                        width: "16px",
+                                                        height: "16px",
+                                                        animation: "spin 1s linear infinite",
+                                                    }}
+                                                />
+                                                Exporting PDF...
+                                            </>
+                                        ) : (
+                                            "Export PDF"
+                                        )}
                                     </button>
                                 </div>
                             </div>
@@ -911,7 +967,7 @@ export default function CreateDeck() {
                                     alignItems: "center",
                                     justifyContent: "center",
                                 }}
-                            >                               
+                            >
                                 <div style={{ display: "flex", flexDirection: "column" }}>
                                     <label
                                         style={{
@@ -940,7 +996,7 @@ export default function CreateDeck() {
                                         }}
                                     />
                                 </div>
-                               
+
                                 <div style={{ display: "flex", flexDirection: "column" }}>
                                     <label
                                         style={{
@@ -978,7 +1034,7 @@ export default function CreateDeck() {
                                         })}
                                     </select>
                                 </div>
-                               
+
                                 <div style={{ display: "flex", flexDirection: "column" }}>
                                     <label
                                         style={{
@@ -1012,7 +1068,7 @@ export default function CreateDeck() {
                                         ))}
                                     </select>
                                 </div>
-                               
+
                                 <div style={{ display: "flex", flexDirection: "column" }}>
                                     <label
                                         style={{
@@ -1045,7 +1101,7 @@ export default function CreateDeck() {
                                             </option>
                                         ))}
                                     </select>
-                                </div>                                
+                                </div>
                                 <div style={{ display: "flex", flexDirection: "column" }}>
                                     <label
                                         style={{
@@ -1079,7 +1135,7 @@ export default function CreateDeck() {
                                         ))}
                                     </select>
                                 </div>
-                                
+
                                 <div style={{ display: "flex", flexDirection: "column" }}>
                                     <label
                                         style={{
