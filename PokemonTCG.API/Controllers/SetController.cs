@@ -10,8 +10,8 @@ namespace PokemonTCG.API.Controllers
     [Route("/api/[controller]")]
     public class SetController : ControllerBase
     {
-        private readonly  ISetService _setService;
-
+        private readonly ISetService _setService;
+                
         public SetController(ISetService setService)
         {
             _setService = setService;
@@ -35,7 +35,7 @@ namespace PokemonTCG.API.Controllers
             return Ok(cards);
         }
         [HttpGet("name/{name}")]
-        public async Task<ActionResult<List<Set>>> GetSetByName(string name)
+        public async Task<ActionResult<List<SetDetailResponse>>> GetSetByName(string name)
         {
             var sets = await _setService.GetSetByNameAsync(name);
             if (sets == null || !sets.Any())
@@ -45,7 +45,7 @@ namespace PokemonTCG.API.Controllers
             return Ok(sets);
         }
         [HttpGet("id/{id}")]
-        public async Task<ActionResult<List<Set>>> GetSetById(string id)
+        public async Task<ActionResult<List<SetDetailResponse>>> GetSetById(string id)
         {
             var sets = await _setService.GetSetByIdAsync(id);
             if (sets == null || !sets.Any())
@@ -55,7 +55,7 @@ namespace PokemonTCG.API.Controllers
             return Ok(sets);
         }
         [HttpGet("serie/{serie}")]
-        public async Task<ActionResult<List<Set>>> GetSetBySerie(string serie)
+        public async Task<ActionResult<List<SetDetailResponse>>> GetSetBySerie(string serie)
         {
             var sets = await _setService.GetSetBySerieAsync(serie);
             if (sets == null || !sets.Any())

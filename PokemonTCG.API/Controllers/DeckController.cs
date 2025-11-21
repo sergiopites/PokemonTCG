@@ -43,7 +43,7 @@ namespace PokemonTCG.API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest($"Error generando mazo automático: {ex.Message}");
+                return BadRequest($"Error generating automatic deck: {ex.Message}");
             }
         }
     }

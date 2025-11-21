@@ -16,7 +16,7 @@ namespace PokemonTCG.API.Controllers
         }
 
         [HttpGet("number/{number}")]
-        public async Task<ActionResult<List<Models.Card>>> GetCardsByNumber(string number)
+        public async Task<ActionResult<List<CardDetailResponse>>> GetCardsByNumber(string number)
         {
             var cards = await _cardService.GetCardsByNumberAsync(number);
             if (cards == null || !cards.Any())
@@ -37,7 +37,7 @@ namespace PokemonTCG.API.Controllers
             return Ok(card);
         }
         [HttpGet("supertype/{supertype}")]
-        public async Task<ActionResult<List<Models.Card>>> GetCardsBySuperType(string supertype)
+        public async Task<ActionResult<List<CardDetailResponse>>> GetCardsBySuperType(string supertype)
         {
             var cards = await _cardService.GetCardsBySuperTypeAsync(supertype);
             if (cards == null || !cards.Any())
