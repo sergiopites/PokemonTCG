@@ -1,52 +1,15 @@
-# ----------------------------
-# Etapa 1: Build del cliente (React/Node)
-# ----------------------------
-FROM node:20-alpine AS client-build
-WORKDIR /app/client
-
-# Copiar solo package.json y package-lock.json para cache de npm
-COPY PokemonTCG.Web.Client/package*.json ./
-RUN npm install
-
-# Copiar el resto del código del frontend
-COPY PokemonTCG.Web.Client/ ./
-
-# Build del frontend
-RUN npm run build
-
-# ----------------------------
-# Etapa 2: Build del backend (.NET)
-# ----------------------------
+# Build stage
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# Copiar solo los archivos de proyecto para restaurar dependencias
-COPY PokemonTCG.API/PokemonTCG.API.csproj PokemonTCG.API/
-COPY PokemonTCG.SDK/PokemonTCG.SDK.csproj PokemonTCG.SDK/
-
-# Restaurar dependencias
-RUN dotnet restore PokemonTCG.API/PokemonTCG.API.csproj
-
-# Copiar todo el código
 COPY . .
+RUN dotnet restore ./PokemonTCG.API/PokemonTCG.API.csproj
+RUN dotnet publish ./PokemonTCG.API/PokemonTCG.API.csproj -c Release -o /app/publish
 
-# Copiar la build del frontend a wwwroot del backend
-RUN mkdir -p PokemonTCG.API/wwwroot
-COPY --from=client-build /app/client/build/ PokemonTCG.API/wwwroot/
-
-# Build y publish del backend
-RUN dotnet build PokemonTCG.API/PokemonTCG.API.csproj -c Release -o /app/build
-RUN dotnet publish PokemonTCG.API/PokemonTCG.API.csproj -c Release -o /app/publish
-
-# ----------------------------
-# Etapa 3: Runtime
-# ----------------------------
+# Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
-
-# Copiar la build publicada del backend
 COPY --from=build /app/publish .
-
 EXPOSE 8080
+ENTRYPOINT ["dotnet", "PokemonTCG.API.dll"]
 
-CMD ["dotnet", "PokemonTCG.API.dll"]

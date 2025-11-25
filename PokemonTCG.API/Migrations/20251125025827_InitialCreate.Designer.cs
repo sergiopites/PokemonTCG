@@ -11,8 +11,8 @@ using PokemonTCG.API.Data;
 namespace PokemonTCG.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251016200934_FixCardColumnLengths")]
-    partial class FixCardColumnLengths
+    [Migration("20251125025827_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -122,9 +122,6 @@ namespace PokemonTCG.API.Migrations
                     b.Property<int?>("ConvertedRetreatCost")
                         .HasColumnType("int");
 
-                    b.Property<int?>("DeckId")
-                        .HasColumnType("int");
-
                     b.Property<string>("EvolvesFrom")
                         .HasColumnType("nvarchar(max)");
 
@@ -183,15 +180,14 @@ namespace PokemonTCG.API.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("Types")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("CardId");
 
                     b.HasIndex("CardImageId")
                         .IsUnique()
                         .HasFilter("[CardImageId] IS NOT NULL");
-
-                    b.HasIndex("DeckId");
 
                     b.HasIndex("ExternalId")
                         .IsUnique();
@@ -318,6 +314,33 @@ namespace PokemonTCG.API.Migrations
                     b.HasKey("DeckId");
 
                     b.ToTable("Decks");
+                });
+
+            modelBuilder.Entity("PokemonTCG.API.Models.DeckCard", b =>
+                {
+                    b.Property<int>("DeckCardId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DeckCardId"));
+
+                    b.Property<string>("CardId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int?>("DeckId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.HasKey("DeckCardId");
+
+                    b.HasIndex("CardId");
+
+                    b.HasIndex("DeckId");
+
+                    b.ToTable("DeckCards");
                 });
 
             modelBuilder.Entity("PokemonTCG.API.Models.Legality", b =>
@@ -570,11 +593,6 @@ namespace PokemonTCG.API.Migrations
                         .HasForeignKey("PokemonTCG.API.Models.Card", "CardImageId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("PokemonTCG.API.Models.Deck", "Deck")
-                        .WithMany("Cards")
-                        .HasForeignKey("DeckId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("PokemonTCG.API.Models.Legality", "Legalities")
                         .WithOne()
                         .HasForeignKey("PokemonTCG.API.Models.Card", "LegalitiesId")
@@ -587,8 +605,6 @@ namespace PokemonTCG.API.Migrations
                         .IsRequired();
 
                     b.Navigation("CardImage");
-
-                    b.Navigation("Deck");
 
                     b.Navigation("Legalities");
 
@@ -615,6 +631,24 @@ namespace PokemonTCG.API.Migrations
                         .IsRequired();
 
                     b.Navigation("CardMarket");
+                });
+
+            modelBuilder.Entity("PokemonTCG.API.Models.DeckCard", b =>
+                {
+                    b.HasOne("PokemonTCG.API.Models.Card", "Card")
+                        .WithMany("DeckCards")
+                        .HasForeignKey("CardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PokemonTCG.API.Models.Deck", "Deck")
+                        .WithMany("DeckCards")
+                        .HasForeignKey("DeckId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Card");
+
+                    b.Navigation("Deck");
                 });
 
             modelBuilder.Entity("PokemonTCG.API.Models.Price", b =>
@@ -694,6 +728,8 @@ namespace PokemonTCG.API.Migrations
                     b.Navigation("CardMarket")
                         .IsRequired();
 
+                    b.Navigation("DeckCards");
+
                     b.Navigation("Resistances");
 
                     b.Navigation("Tcgplayer")
@@ -715,7 +751,7 @@ namespace PokemonTCG.API.Migrations
 
             modelBuilder.Entity("PokemonTCG.API.Models.Deck", b =>
                 {
-                    b.Navigation("Cards");
+                    b.Navigation("DeckCards");
                 });
 
             modelBuilder.Entity("PokemonTCG.API.Models.TCGPlayer", b =>
