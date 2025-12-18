@@ -23,7 +23,6 @@ namespace PokemonTCG.API.Controllers
             return Ok();
         }
 
-
         [HttpGet("all")]
         public async Task<ActionResult<List<SetDetailResponse>>> GetAllSets()
         {
@@ -34,6 +33,7 @@ namespace PokemonTCG.API.Controllers
             }
             return Ok(cards);
         }
+
         [HttpGet("name/{name}")]
         public async Task<ActionResult<List<SetDetailResponse>>> GetSetByName(string name)
         {
@@ -44,6 +44,7 @@ namespace PokemonTCG.API.Controllers
             }
             return Ok(sets);
         }
+
         [HttpGet("id/{id}")]
         public async Task<ActionResult<List<SetDetailResponse>>> GetSetById(string id)
         {
@@ -54,6 +55,7 @@ namespace PokemonTCG.API.Controllers
             }
             return Ok(sets);
         }
+
         [HttpGet("serie/{serie}")]
         public async Task<ActionResult<List<SetDetailResponse>>> GetSetBySerie(string serie)
         {

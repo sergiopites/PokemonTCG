@@ -1,8 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using PokemonTCG.API.Data;
 using PokemonTCG.API.DTOs;
 using PokemonTCG.API.Models;
-using System.Collections.Generic;
+using PokemonTCG.API.Responses;
+using Microsoft.Extensions.Logging;
 
 namespace PokemonTCG.API.Repositories
 {
@@ -15,6 +20,7 @@ namespace PokemonTCG.API.Repositories
             _context = context;
             _logger = logger;
         }
+
         public async Task<List<SetDetailDTO>> GetAllSetsAsync()
         {
             try
@@ -22,7 +28,6 @@ namespace PokemonTCG.API.Repositories
                 var setList = await _context.Sets
                     .Include(s => s.Images)
                     .OrderByDescending(s => s.ReleaseDate)
-                    //.OrderBy(s=>s.ReleaseDate)
                     .Select(s => new SetDetailDTO
                     {
                         SetId = s.SetId,
@@ -44,42 +49,96 @@ namespace PokemonTCG.API.Repositories
                 return new List<SetDetailDTO>();
             }
         }
-        public async Task<List<Models.Set>> GetSetByIdAsync(string id)
+        public async Task<List<SetDetailDTO>> GetSetByIdAsync(string id)
         {
             try
             {
-                return await _context.Sets.Where(c => c.SetId == id).ToListAsync();
+                var setList = await _context.Sets
+                    .Where(s => s.SetId == id)
+                    .Include(s => s.Images)
+                    .Select(s => new SetDetailDTO
+                    {
+                        SetId = s.SetId,
+                        Name = s.Name,
+                        Series = s.Series,
+                        PrintedTotal = s.PrintedTotal,
+                        Total = s.Total,
+                        PtcgoCode = s.PtcgoCode,
+                        ReleaseDate = s.ReleaseDate,
+                        UpdatedAt = s.UpdatedAt,
+                        Logo = s.Images.Logo,
+                        Symbol = s.Images.Symbol
+                    }).ToListAsync();
+
+                return setList;
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Error retrieving sets by ID '{id}': {ex.Message}");
-                return new List<Models.Set>();
+                return new List<SetDetailDTO>();
             }
         }
-        public async Task<List<Models.Set>> GetSetByNameAsync(string name)
+
+        public async Task<List<SetDetailDTO>> GetSetByNameAsync(string name)
         {
             try
             {
-                return await _context.Sets.Where(c => c.Name == name).ToListAsync();
+                var setList = await _context.Sets
+                    .Where(s => s.Name == name)
+                    .Include(s => s.Images)
+                    .Select(s => new SetDetailDTO
+                    {
+                        SetId = s.SetId,
+                        Name = s.Name,
+                        Series = s.Series,
+                        PrintedTotal = s.PrintedTotal,
+                        Total = s.Total,
+                        PtcgoCode = s.PtcgoCode,
+                        ReleaseDate = s.ReleaseDate,
+                        UpdatedAt = s.UpdatedAt,
+                        Logo = s.Images.Logo,
+                        Symbol = s.Images.Symbol
+                    }).ToListAsync();
+
+                return setList;
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Error retrieving sets by name '{name}': {ex.Message}");
-                return new List<Models.Set>();
+                return new List<SetDetailDTO>();
             }
         }
-        public async Task<List<Models.Set>> GetSetBySerieAsync(string serie)
+
+        public async Task<List<SetDetailDTO>> GetSetBySerieAsync(string serie)
         {
             try
             {
-                return await _context.Sets.Where(c => c.Series == serie).ToListAsync();
+                var setList = await _context.Sets
+                    .Where(s => s.Series == serie)
+                    .Include(s => s.Images)
+                    .Select(s => new SetDetailDTO
+                    {
+                        SetId = s.SetId,
+                        Name = s.Name,
+                        Series = s.Series,
+                        PrintedTotal = s.PrintedTotal,
+                        Total = s.Total,
+                        PtcgoCode = s.PtcgoCode,
+                        ReleaseDate = s.ReleaseDate,
+                        UpdatedAt = s.UpdatedAt,
+                        Logo = s.Images.Logo,
+                        Symbol = s.Images.Symbol
+                    }).ToListAsync();
+
+                return setList;
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Error retrieving sets by serie '{serie}': {ex.Message}");
-                return new List<Models.Set>();
+                return new List<SetDetailDTO>();
             }
         }
+
         public async Task<Set> SaveSetAsync(Models.Set set, CancellationToken cancellationToken = default)
         {
             try
@@ -91,8 +150,8 @@ namespace PokemonTCG.API.Repositories
                     return existing;
 
                 _context.Sets.Add(set);
-                
-                await _context.SaveChangesAsync();
+
+                await _context.SaveChangesAsync(cancellationToken);
                 _logger.LogInformation($"Set: {set.SetId} was updated successfully.");
 
                 return set;
@@ -103,6 +162,5 @@ namespace PokemonTCG.API.Repositories
                 throw;
             }
         }
-
     }
 }

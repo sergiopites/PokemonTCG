@@ -208,7 +208,7 @@ export default function CreateDeck() {
             const lines = importText
                 .split("\n")
                 .map((l) => l.trim())
-                .filter((l) => l && !/^pokémon|entrenador|energ[ií]a|cartas totales/i.test(l));
+                .filter((l) => l && !/^pokémon|trainer|energies|cards totals/i.test(l));
 
             const parsed = [];
             const regex = /^(\d+)\s+([\p{L}\p{N}\s'’"“”\.\-:,&()]+?)\s*(?:\(?([A-Z0-9\-]{2,6})\)?(?:\s+(\d+))?)?$/u;
