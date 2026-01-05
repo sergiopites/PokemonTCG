@@ -32,6 +32,7 @@ namespace PokemonTCG.API.Services
             {
                 // Obtener los sets desde la API externa
                 var externalSets = await GetAllPokemonSetsAsync();
+                
                 if (externalSets == null || !externalSets.Any())
                     return;
 
