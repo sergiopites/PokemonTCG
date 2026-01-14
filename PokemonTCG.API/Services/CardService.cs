@@ -38,7 +38,7 @@ namespace PokemonTCG.API.Services
             _tcgPlayerRepository = tcgPlayerRepository;
             _ancientTraitRepository = ancientTraitRepository;
         }
-             public async Task<List<CardDetailResponse>> GetCardByCardIdAsync(string id)
+        public async Task<List<CardDetailResponse>> GetCardByCardIdAsync(string id)
         {
             try
             {
@@ -104,7 +104,7 @@ namespace PokemonTCG.API.Services
                 _logger.LogError(ex.Message);
                 return new List<CardDetailResponse>();
             }
-        }       
+        }
         public async Task<List<CardDetailResponse>> GetCardsBySet(string setId)
         {
             try
@@ -173,8 +173,7 @@ namespace PokemonTCG.API.Services
                     foreach (var c in externalCards)
                     {
                         try
-                        {
-                            // ---------------- CardImage ----------------
+                        {                            
                             var cardImage = new CardImage
                             {
                                 Small = c.Images?.Small,
@@ -182,7 +181,6 @@ namespace PokemonTCG.API.Services
                             };
                             cardImage = await _cardImageRepository.SaveImageCardAsync(cardImage, cancellationToken);
 
-                            // ---------------- Legalities ----------------
                             var cardLegality = new Legality
                             {
                                 Expanded = c.Legalities?.Expanded,
@@ -191,7 +189,6 @@ namespace PokemonTCG.API.Services
                             };
                             cardLegality = await _legalityRepository.SaveLegalityAsync(cardLegality, cancellationToken);
 
-                            // ---------------- Abilities ----------------
                             var cardAbilities = c.Abilities?.Select(a => new Ability
                             {
                                 Name = a.Name,
@@ -199,7 +196,6 @@ namespace PokemonTCG.API.Services
                                 Type = a.Type
                             }).ToList() ?? new List<Ability>();
 
-                            // ---------------- Attacks ----------------
                             var cardAttacks = c.Attacks?.Select(at => new Attack
                             {
                                 Name = at.Name,
@@ -209,21 +205,18 @@ namespace PokemonTCG.API.Services
                                 Text = at.Text
                             }).ToList() ?? new List<Attack>();
 
-                            // ---------------- Resistances ----------------
                             var cardResistances = c.Resistances?.Select(r => new Resistance
                             {
                                 Type = r.Type,
                                 Value = r.Value,
                             }).ToList() ?? new List<Resistance>();
-
-                            // ---------------- Weaknesses ----------------
+                                                        
                             var cardWeaknesses = c.Weaknesses?.Select(w => new Weakness
                             {
                                 Type = w.Type,
                                 Value = w.Value
                             }).ToList() ?? new List<Weakness>();
-
-                            // ---------------- CardMarket ----------------
+                            
                             CardMarket? cardMarket = null;
 
                             if (c.Cardmarket != null)
@@ -254,8 +247,7 @@ namespace PokemonTCG.API.Services
                                     });
                                 }
                             }
-
-                            // ---------------- TCGPlayer ----------------
+                                                        
                             Models.TCGPlayer? cardTcgPlayer = null;
                             if (c.Tcgplayer != null)
                             {
@@ -472,7 +464,7 @@ namespace PokemonTCG.API.Services
         }
 
         public async Task<List<CardDetailResponse>> GetDistinctTypesAsync()
-        { 
+        {
             var distinctTypes = await _cardRepository.GetDistinctTypesAsync();
             return distinctTypes.Select(type => new CardDetailResponse { Type = type }).ToList();
         }

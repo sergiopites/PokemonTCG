@@ -18,7 +18,6 @@ export default function SaveCards() {
                 }
             });
 
-
             console.log("Response status:", response.status);
 
             if (response.ok) {
