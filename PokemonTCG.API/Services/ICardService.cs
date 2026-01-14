@@ -5,10 +5,8 @@ using PokemonTCG.API.Responses;
 namespace PokemonTCG.API.Services
 {
     public interface ICardService
-    {
-        Task<List<Models.Card>> GetCardsByNumberAsync(string number);
-        Task<List<CardDetailResponse>> GetCardByCardIdAsync(string id);
-        Task<List<Models.Card>> GetCardsBySuperTypeAsync(string supertype);        
+    {        
+        Task<List<CardDetailResponse>> GetCardByCardIdAsync(string id);            
         Task<List<CardDetailResponse>> GetCardsBySet(string setId);
         Task<CardDetailResponse> GetCardsByRarityAsync(string rarity, int page = 1, int pageSize = 55);
         Task<CardDetailResponse> GetCardsByTypeAsync(string type, int page = 1, int pageSize = 55);

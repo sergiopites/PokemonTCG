@@ -38,11 +38,7 @@ namespace PokemonTCG.API.Services
             _tcgPlayerRepository = tcgPlayerRepository;
             _ancientTraitRepository = ancientTraitRepository;
         }
-        public async Task<List<Models.Card>> GetCardsByNumberAsync(string number)
-        {
-            return await _cardRepository.GetCardsByNumberAsync(number);
-        }
-        public async Task<List<CardDetailResponse>> GetCardByCardIdAsync(string id)
+             public async Task<List<CardDetailResponse>> GetCardByCardIdAsync(string id)
         {
             try
             {
@@ -108,11 +104,7 @@ namespace PokemonTCG.API.Services
                 _logger.LogError(ex.Message);
                 return new List<CardDetailResponse>();
             }
-        }
-        public async Task<List<Models.Card>> GetCardsBySuperTypeAsync(string supertype)
-        {
-            return await _cardRepository.GetCardsBySuperTypeAsync(supertype);
-        }
+        }       
         public async Task<List<CardDetailResponse>> GetCardsBySet(string setId)
         {
             try

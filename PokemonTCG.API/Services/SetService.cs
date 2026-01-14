@@ -10,6 +10,7 @@ using PokemonTCG.SDK.Infrastructure.HttpClients.Set;
 using Microsoft.Extensions.Logging;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Reflection;
 
 namespace PokemonTCG.API.Services
 {
@@ -206,11 +207,10 @@ namespace PokemonTCG.API.Services
         }
         public async Task<List<Models.Set>> GetAllPokemonSetsAsync()
         {
-            var apiKey = "9e6b5ba1-0b91-46de-89fc-740efcccfb40";
+            //var apiKey = "9e6b5ba1-0b91-46de-89fc-740efcccfb40";
 
-            using var client = new PokemonApiClient(apiKey);
-
-            // Usar un DTO que herede de ApiResource
+            using var client = new PokemonApiClient();
+                        
             var resourceList = await client.GetApiResourceAsync<PokemonSetApiResource>();
 
             if (resourceList?.Results != null && resourceList.Results.Any())

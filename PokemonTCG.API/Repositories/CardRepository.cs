@@ -1,8 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using PokemonTCG.API.Data;
 using PokemonTCG.API.DTOs;
 using PokemonTCG.API.Helpers;
 using PokemonTCG.API.Models;
+using StackExchange.Redis;
+using System.Text.Json;
 
 namespace PokemonTCG.API.Repositories
 {
@@ -10,23 +13,16 @@ namespace PokemonTCG.API.Repositories
     {
         private readonly AppDbContext _context;
         private readonly ILogger<ICardRepository> _logger;
-        public CardRepository(AppDbContext context, ILogger<ICardRepository> logger)
+        private readonly IDistributedCache _cache;
+        private readonly IConnectionMultiplexer _redis;
+        public CardRepository(AppDbContext context, ILogger<ICardRepository> logger, IDistributedCache cache,  IConnectionMultiplexer redis)
         {
             _context = context;
             _logger = logger;
+            _cache = cache;
+            _redis = redis;
         }
-        public async Task<List<Card>> GetCardsByNumberAsync(string number)
-        {
-            try
-            {
-                return await _context.Cards.Where(c => c.Number == number).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error retrieving cards by number '{number}': {ex.Message}");
-                return new List<Models.Card>();
-            }
-        }
+
         public async Task<List<CardDetailDTO>> GetCardsByCardIdAsync(string id)
         {
             try
@@ -108,18 +104,6 @@ namespace PokemonTCG.API.Repositories
                 return new List<CardDetailDTO>();
             }
         }
-        public async Task<List<Models.Card>> GetCardsBySuperTypeAsync(string supertype)
-        {
-            try
-            {
-                return await _context.Cards.Where(c => c.SuperType == supertype).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error retrieving cards by supertype '{supertype}': {ex.Message}");
-                return new List<Models.Card>();
-            }
-        }
         public async Task<List<CardDetailDTO>> GetCardsBySet(string setId)
         {
             try
@@ -166,58 +150,45 @@ namespace PokemonTCG.API.Repositories
             }
         }
         public async Task<PagedResult<CardDetailDTO>> SearchCardsAsync(
-    string? name = null,
-    string? setId = null,
-    string? ptcgoCode = null,
-    string? supertype = null,
-    string? subtype = null,
-    string? type = null,
-    string? rarity = null,
-    int page = 1,
-    int pageSize = 55,
-    string? number = null)
+     string? name = null,
+     string? setId = null,
+     string? ptcgoCode = null,
+     string? supertype = null,
+     string? subtype = null,
+     string? type = null,
+     string? rarity = null,
+     int page = 1,
+     int pageSize = 55,
+     string? number = null)
         {
-            var query = _context.Cards
+            var hash = CacheKeyHelper.Hash(
+                name, setId, ptcgoCode, supertype, subtype,
+                type, rarity, number, page, pageSize);
+
+            var cacheKey = $"cards:search:{hash}";
+                        
+            var cachedJson = await _cache.GetStringAsync(cacheKey);
+            if (cachedJson != null)
+                return JsonSerializer.Deserialize<PagedResult<CardDetailDTO>>(cachedJson)!;
+                        
+            IQueryable<Card> query = _context.Cards
                 .AsNoTracking()
                 .Include(c => c.Set)
-                .Include(c => c.CardImage)
-                .AsQueryable();
+                .Include(c => c.CardImage);
 
-            // FILTROS
             if (!string.IsNullOrWhiteSpace(name))
                 query = query.Where(c => EF.Functions.Like(c.Name, $"%{name}%"));
 
             if (!string.IsNullOrWhiteSpace(setId))
                 query = query.Where(c => c.Set.SetId == setId);
 
-            if (!string.IsNullOrWhiteSpace(ptcgoCode))
-                query = query.Where(c => c.Set.PtcgoCode == ptcgoCode);
-
-            if (!string.IsNullOrWhiteSpace(supertype))
-                query = query.Where(c => c.SuperType == supertype);
-
-            if (!string.IsNullOrWhiteSpace(subtype))
-                query = query.Where(c => c.SubTypes.Contains(subtype));
-
             if (!string.IsNullOrWhiteSpace(type))
                 query = query.Where(c => c.Types.Contains(type));
 
-            if (!string.IsNullOrWhiteSpace(rarity))
-                query = query.Where(c => c.Rarity == rarity);
-
-            if (!string.IsNullOrWhiteSpace(number))
-                query = query.Where(c => c.Number == number);
-
-            query = query
-                .OrderBy(c =>
-                    EF.Functions.Like(c.Number, "%[^0-9]%")
-                        ? int.MaxValue
-                        : (int?)Convert.ToInt32(c.Number))
-                .ThenBy(c => c.Number);
-
-            var totalCount = await query.CountAsync();
+            var total = await query.CountAsync();
 
             var items = await query
+                .OrderBy(c => c.CardId)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(c => new CardDetailDTO
@@ -225,25 +196,45 @@ namespace PokemonTCG.API.Repositories
                     CardId = c.CardId,
                     Name = c.Name,
                     SetName = c.Set.Name,
-                    Ptcgocode = c.Set.PtcgoCode,
-                    Supertype = c.SuperType,
-                    Subtype = c.SubTypes,
                     SetId = c.Set.SetId,
-                    Type = c.Types,
-                    Rarity = c.Rarity,
-                    ImageLarge = c.CardImage != null ? c.CardImage.Large : null,
-                    Number = c.Number
+                    Ptcgocode = c.Set.PtcgoCode,
+                    ImageLarge = c.CardImage != null ? c.CardImage.Large : null
                 })
                 .ToListAsync();
 
-            return new PagedResult<CardDetailDTO>
+            var result = new PagedResult<CardDetailDTO>
             {
                 Page = page,
                 PageSize = pageSize,
-                TotalCount = totalCount,
+                TotalCount = total,
                 Items = items
             };
+                        
+            await _cache.SetStringAsync(
+                cacheKey,
+                JsonSerializer.Serialize(result),
+                new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
+                    SlidingExpiration = TimeSpan.FromMinutes(5)
+                });
+            
+            await TrackPopularSearchAsync(name);
+
+            return result;
         }
+        private async Task TrackPopularSearchAsync(string? term)
+        {
+            if (string.IsNullOrWhiteSpace(term) || term.Length < 3)
+                return;
+
+            var key = "cards:popular";
+            var db = _redis.GetDatabase();
+
+            await db.SortedSetIncrementAsync(key, term.ToLower(), 1);
+        }
+
+
 
         public async Task<IEnumerable<string>> GetDistinctRaritiesAsync()
         {

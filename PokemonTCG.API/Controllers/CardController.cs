@@ -13,18 +13,7 @@ namespace PokemonTCG.API.Controllers
         public CardController(ICardService cardService)
         {
             _cardService = cardService;
-        }
-
-        [HttpGet("number/{number}")]
-        public async Task<ActionResult<List<CardDetailResponse>>> GetCardsByNumber(string number)
-        {
-            var cards = await _cardService.GetCardsByNumberAsync(number);
-            if (cards == null || !cards.Any())
-            {
-                return NotFound();
-            }
-            return Ok(cards);
-        }
+        }        
 
         [HttpGet("cardid/{cardid}")]
         public async Task<ActionResult<List<CardDetailResponse>>> GetCardByCardId(string cardid)
@@ -35,16 +24,6 @@ namespace PokemonTCG.API.Controllers
                 return NotFound();
             }
             return Ok(card);
-        }
-        [HttpGet("supertype/{supertype}")]
-        public async Task<ActionResult<List<CardDetailResponse>>> GetCardsBySuperType(string supertype)
-        {
-            var cards = await _cardService.GetCardsBySuperTypeAsync(supertype);
-            if (cards == null || !cards.Any())
-            {
-                return NotFound();
-            }
-            return Ok(cards);
         }
 
         [HttpGet("setid/{setid}")]

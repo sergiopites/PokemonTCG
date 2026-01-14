@@ -3,12 +3,10 @@ using PokemonTCG.API.Data;
 using PokemonTCG.API.Repositories;
 using PokemonTCG.API.Services;
 using Serilog;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --------------------
-// Configuración de Serilog
-// --------------------
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
     .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
@@ -25,13 +23,9 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
-// --------------------
-// Configuración de servicios
-// --------------------
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ✅ CORS para localhost y 127.0.0.1
 var corsPolicy = "AllowFrontend";
 builder.Services.AddCors(options =>
 {
@@ -48,7 +42,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-// 🔹 Inyección de dependencias
 builder.Services.AddScoped<ICardRepository, CardRepository>();
 builder.Services.AddScoped<ICardService, CardService>();
 builder.Services.AddScoped<ISetRepository, SetRepository>();
@@ -72,24 +65,35 @@ builder.Services.AddScoped<IResistanceRepository, ResistanceRepository>();
 builder.Services.AddScoped<ISetImageRepository, SetImageRepository>();
 builder.Services.AddScoped<IDeckRepository, DeckRepository>();
 builder.Services.AddScoped<IDeckService, DeckService>();
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName = "PokemonTCG:";
+});
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var config = ConfigurationOptions.Parse(
+        builder.Configuration.GetConnectionString("Redis"),
+        true
+    );
+
+    return ConnectionMultiplexer.Connect(config);
+});
 
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddMemoryCache();
 
 var app = builder.Build();
 
-// --------------------
-// Middleware pipeline
-// --------------------
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// ✅ IMPORTANTE: CORS va ANTES de redirección HTTPS y autorización
 app.UseCors(corsPolicy);
 
 app.UseHttpsRedirection();
