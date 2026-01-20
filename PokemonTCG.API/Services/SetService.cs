@@ -30,8 +30,7 @@ namespace PokemonTCG.API.Services
         public async Task SaveSetAsync(CancellationToken cancellationToken)
         {
             try
-            {
-                // Obtener los sets desde la API externa
+            {                
                 var externalSets = await GetAllPokemonSetsAsync();
                 
                 if (externalSets == null || !externalSets.Any())
@@ -207,7 +206,7 @@ namespace PokemonTCG.API.Services
         }
         public async Task<List<Models.Set>> GetAllPokemonSetsAsync()
         {
-            //var apiKey = "9e6b5ba1-0b91-46de-89fc-740efcccfb40";
+            var apiKey = "9e6b5ba1-0b91-46de-89fc-740efcccfb40";
 
             using var client = new PokemonApiClient();
                         
@@ -232,8 +231,7 @@ namespace PokemonTCG.API.Services
                         Unlimited = s.Legalities.Unlimited
                     } : null,
                     Images = s.Images != null ? new SetImage
-                    {
-                        // Convertir strings a Uri de forma segura
+                    {                        
                         Logo = ToUri(s.Images.Logo),
                         Symbol = ToUri(s.Images.Symbol)
                     } : null,
@@ -244,8 +242,7 @@ namespace PokemonTCG.API.Services
 
             return new List<Models.Set>();
         }
-
-        // Método auxiliar para convertir string? -> Uri?
+                
         private static Uri? ToUri(string? url)
         {
             if (string.IsNullOrWhiteSpace(url))
@@ -259,7 +256,6 @@ namespace PokemonTCG.API.Services
         {
             // Implementación requerida por ApiResource / ResourceBase
             public override string Id { get; set; }
-
             public string Name { get; set; }
             public string Series { get; set; }
             public long? PrintedTotal { get; set; }

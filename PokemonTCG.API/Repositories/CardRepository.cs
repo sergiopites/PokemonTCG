@@ -38,7 +38,6 @@ namespace PokemonTCG.API.Repositories
                 Abilities = c.Abilities,
                 Resistances = c.Resistances,
                 Weaknesses = c.Weaknesses
-
             })
             .Select(x => new CardDetailDTO
             {
