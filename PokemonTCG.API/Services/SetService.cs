@@ -206,8 +206,6 @@ namespace PokemonTCG.API.Services
         }
         public async Task<List<Models.Set>> GetAllPokemonSetsAsync()
         {
-            var apiKey = "9e6b5ba1-0b91-46de-89fc-740efcccfb40";
-
             using var client = new PokemonApiClient();
                         
             var resourceList = await client.GetApiResourceAsync<PokemonSetApiResource>();
@@ -224,17 +222,18 @@ namespace PokemonTCG.API.Services
                     PtcgoCode = s.PtcgoCode,
                     ReleaseDate = s.ReleaseDate,
                     UpdatedAt = s.UpdatedAt,
-                    Legalities = s.Legalities != null ? new Legality
+                    // Asegurar que la propiedad Legalities no reciba null: crear objeto con valores posiblemente nullables
+                    Legalities = new Legality
                     {
-                        Expanded = s.Legalities.Expanded,
-                        Standard = s.Legalities.Standard,
-                        Unlimited = s.Legalities.Unlimited
-                    } : null,
-                    Images = s.Images != null ? new SetImage
+                        Expanded = s.Legalities?.Expanded,
+                        Standard = s.Legalities?.Standard,
+                        Unlimited = s.Legalities?.Unlimited
+                    },
+                    Images = new SetImage
                     {                        
-                        Logo = ToUri(s.Images.Logo),
-                        Symbol = ToUri(s.Images.Symbol)
-                    } : null,
+                        Logo = ToUri(s.Images?.Logo),
+                        Symbol = ToUri(s.Images?.Symbol)
+                    },
                 }).ToList();
 
                 return listSet;
