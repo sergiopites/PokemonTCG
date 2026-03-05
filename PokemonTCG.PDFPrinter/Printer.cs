@@ -102,7 +102,7 @@ namespace PokemonTCG.Printer
             foreach (var rawUrl in imageUrls)
             {
                 var url = rawUrl?.Trim();
-                _logger?.LogInformation("Intentando descargar: {Url}", url);
+                _logger?.LogInformation("Trying to download: {Url}", url);
 
                 if (!Uri.TryCreate(url, UriKind.Absolute, out var validatedUri))
                 {
@@ -127,7 +127,7 @@ namespace PokemonTCG.Printer
                 else
                 {                    
                     var response = await _httpClient.GetAsync(validatedUri);
-                    _logger?.LogInformation("Status {Status} para {Url}", response.StatusCode, url);
+                    _logger?.LogInformation("Status {Status} for {Url}", response.StatusCode, url);
                     response.EnsureSuccessStatusCode();
                     imageBytes = await response.Content.ReadAsByteArrayAsync();
                 }
@@ -149,7 +149,7 @@ namespace PokemonTCG.Printer
             }
 
             if (document.PageCount == 0)
-                throw new Exception("No se generó ninguna página: todas las descargas fallaron.");
+                throw new Exception("No page was generated: all downloads failed.");
 
             using var stream = new MemoryStream();
             document.Save(stream, false);
@@ -182,7 +182,7 @@ namespace PokemonTCG.Printer
                 var url = rawUrl?.Trim();
                 if (string.IsNullOrEmpty(url)) continue;
 
-                _logger?.LogInformation("Intentando descargar: {Url}", url);
+                _logger?.LogInformation("Trying to download: {Url}", url);
 
                 if (!Uri.TryCreate(url, UriKind.Absolute, out var validatedUri))
                 {
@@ -207,7 +207,7 @@ namespace PokemonTCG.Printer
                 }
                 catch (Exception ex)
                 {
-                    _logger?.LogError(ex, "Error descargando imagen {Url}", url);
+                    _logger?.LogError(ex, "Error downloading image {Url}", url);
                     continue;
                 }
 
@@ -239,7 +239,7 @@ namespace PokemonTCG.Printer
             }
 
             if (document.PageCount == 0)
-                throw new Exception("No se generó ninguna página: todas las descargas fallaron.");
+                throw new Exception("No page was generated: all downloads failed.");
 
             using var stream = new MemoryStream();
             document.Save(stream, false);
