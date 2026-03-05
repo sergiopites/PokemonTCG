@@ -166,7 +166,7 @@ namespace PokemonTCG.API.Services
 
                 foreach (var set in setList)
                 {
-                    var externalCards = await GetPokemonCardBySetIdAsync("me2pt5");//set.SetId);
+                    var externalCards = await GetPokemonCardBySetIdAsync(set.SetId);
                     if (externalCards == null || !externalCards.Any())
                         continue;
 
