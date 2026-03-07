@@ -42,7 +42,7 @@ namespace PokemonTCG.API.Controllers
                                                 [FromQuery] string? subtype,[FromQuery] string? type,[FromQuery] string? rarity,
                                                 [FromQuery] int page = 1,[FromQuery] int pageSize = 55)
         {
-            var result = await _cardService.SearchCardsAsync(name: name, setId: setId, ptcgoCode: ptcgoCode,
+           var result = await _cardService.SearchCardsAsync(name: name, setId: setId, ptcgoCode: ptcgoCode,
                                                           supertype: supertype, subtype: subtype, type: type,
                                                           rarity: rarity, page: page, pageSize: pageSize, number: number);      
 

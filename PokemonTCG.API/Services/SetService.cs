@@ -7,10 +7,14 @@ using PokemonTCG.API.Repositories;
 using PokemonTCG.API.Responses;
 using PokemonTCG.SDK.Infrastructure.HttpClients;
 using PokemonTCG.SDK.Infrastructure.HttpClients.Set;
+using PokemonTCG.SDK.Infrastructure.HttpClients.CommonModels;
 using Microsoft.Extensions.Logging;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Reflection;
+using Polly;
+using System.Net.Http;
+using PokemonTCG.SDK.Infrastructure.HttpClients.Base;
 
 namespace PokemonTCG.API.Services
 {
@@ -206,9 +210,28 @@ namespace PokemonTCG.API.Services
         }
         public async Task<List<Models.Set>> GetAllPokemonSetsAsync()
         {
-            using var client = new PokemonApiClient();
-                        
-            var resourceList = await client.GetApiResourceAsync<PokemonSetApiResource>();
+            var apiKey = "9e6b5ba1-0b91-46de-89fc-740efcccfb40";
+
+            // Definimos la política de reintento
+            var retryPolicy = Policy
+                .Handle<HttpRequestException>() // por si hay problemas de red
+                .OrResult<ApiResourceList<PokemonSetApiResource>>(r => r == null) // si la respuesta es nula                
+                .WaitAndRetryAsync(
+                    retryCount: 15,
+                    sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)), // 2s, 4s, 8s, 16s, etc.
+                    onRetry: (outcome, timespan, retryAttempt, context) =>
+                    {
+                        Console.WriteLine($"⚠️ Reintentando obtener sets (intento {retryAttempt}) después de {timespan.TotalSeconds}s...");
+                    });
+
+            using var client = new PokemonApiClient(apiKey);
+
+            // Ejecutamos la llamada con la política de retry
+            var resourceList = await retryPolicy.ExecuteAsync(async () =>
+            {
+                var result = await client.GetApiResourceAsync<PokemonSetApiResource>();
+                return result;
+            });
 
             if (resourceList?.Results != null && resourceList.Results.Any())
             {
@@ -222,7 +245,6 @@ namespace PokemonTCG.API.Services
                     PtcgoCode = s.PtcgoCode,
                     ReleaseDate = s.ReleaseDate,
                     UpdatedAt = s.UpdatedAt,
-                    // Asegurar que la propiedad Legalities no reciba null: crear objeto con valores posiblemente nullables
                     Legalities = new Legality
                     {
                         Expanded = s.Legalities?.Expanded,
@@ -249,21 +271,5 @@ namespace PokemonTCG.API.Services
 
             return Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri : null;
         }
-
-        // Agregar el DTO que hereda de ApiResource
-        public class PokemonSetApiResource : ApiResource
-        {
-            // Implementación requerida por ApiResource / ResourceBase
-            public override string Id { get; set; }
-            public string Name { get; set; }
-            public string Series { get; set; }
-            public long? PrintedTotal { get; set; }
-            public long? Total { get; set; }
-            public string PtcgoCode { get; set; }
-            public string ReleaseDate { get; set; }
-            public string UpdatedAt { get; set; }
-            public LegalityDTO Legalities { get; set; }
-            public SetImageDTO Images { get; set; }
-        }     
     }
 }
