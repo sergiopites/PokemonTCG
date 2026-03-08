@@ -6,6 +6,7 @@ Este documento proporciona instrucciones paso a paso para descargar, configurar 
 
 Antes de comenzar, asegúrate de tener instalado lo siguiente en tu sistema:
 
+- [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) (versión 17.0 o superior)
 - [Git](https://git-scm.com/downloads) (versión 2.0 o superior)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (versión 4.0 o superior)
 - [.NET SDK 9.0](https://dotnet.microsoft.com/download/dotnet/9.0) (solo si deseas ejecutar sin Docker)
