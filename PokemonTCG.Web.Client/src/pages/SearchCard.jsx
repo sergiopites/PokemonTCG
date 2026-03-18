@@ -91,17 +91,17 @@ export default function SearchCard() {
     useEffect(() => {
         const fetchCards = async () => {
             try {
-                const params = new URLSearchParams({
-                    name: search || "",
-                    number: number || "", // 🔹 ahora se envía correctamente al backend
-                    setId: setId || "",
-                    subtype: subtype || "",
-                    type: type || "",
-                    supertype: supertype || "",
-                    rarity: rarity || "",
-                    page: String(page),
-                    pageSize: "55",
-                });
+                const params = new URLSearchParams();
+
+                if (search) params.append("name", search);
+                if (number) params.append("number", number);
+                if (setId) params.append("setId", setId);
+                if (subtype) params.append("subtype", subtype);
+                if (type) params.append("type", type);
+                if (supertype) params.append("supertype", supertype);
+                if (rarity) params.append("rarity", rarity);
+                params.append("page", String(page));
+                params.append("pageSize", "55");
 
                 const res = await fetch(`${API_URL}/api/card/search?${params.toString()}`);
                 if (!res.ok) throw new Error("Error searching for cards");

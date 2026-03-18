@@ -1,10 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
 using PokemonTCG.API.Data;
 using PokemonTCG.API.DTOs;
 using PokemonTCG.API.Helpers;
 using PokemonTCG.API.Models;
-using StackExchange.Redis;
 using System.Text.Json;
 
 namespace PokemonTCG.API.Repositories
@@ -13,14 +12,12 @@ namespace PokemonTCG.API.Repositories
     {
         private readonly AppDbContext _context;
         private readonly ILogger<ICardRepository> _logger;
-        private readonly IDistributedCache _cache;
-        private readonly IConnectionMultiplexer _redis;
-        public CardRepository(AppDbContext context, ILogger<ICardRepository> logger, IDistributedCache cache,  IConnectionMultiplexer redis)
+        private readonly IMemoryCache _cache;
+        public CardRepository(AppDbContext context, ILogger<ICardRepository> logger, IMemoryCache cache)
         {
             _context = context;
             _logger = logger;
             _cache = cache;
-            _redis = redis;
         }
 
         public async Task<List<CardDetailDTO>> GetCardsByCardIdAsync(string id)
@@ -165,11 +162,10 @@ namespace PokemonTCG.API.Repositories
                 type, rarity, number, page, pageSize);
 
             var cacheKey = $"cards:search:{hash}";
-                        
-            var cachedJson = await _cache.GetStringAsync(cacheKey);
-            if (cachedJson != null)
-                return JsonSerializer.Deserialize<PagedResult<CardDetailDTO>>(cachedJson)!;
-                        
+
+            if (_cache.TryGetValue(cacheKey, out PagedResult<CardDetailDTO>? cached) && cached != null)
+                return cached;
+
             IQueryable<Card> query = _context.Cards
                 .AsNoTracking()
                 .Include(c => c.Set)
@@ -183,6 +179,9 @@ namespace PokemonTCG.API.Repositories
 
             if (!string.IsNullOrWhiteSpace(type))
                 query = query.Where(c => c.Types.Contains(type));
+
+            if (!string.IsNullOrWhiteSpace(number))
+                query = query.Where(c => c.Number == number);
 
             var total = await query.CountAsync();
 
@@ -208,32 +207,17 @@ namespace PokemonTCG.API.Repositories
                 TotalCount = total,
                 Items = items
             };
-                        
-            await _cache.SetStringAsync(
-                cacheKey,
-                JsonSerializer.Serialize(result),
-                new DistributedCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
-                    SlidingExpiration = TimeSpan.FromMinutes(5)
-                });
-            
-            await TrackPopularSearchAsync(name);
+
+            var cacheOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
+                SlidingExpiration = TimeSpan.FromMinutes(5)
+            };
+
+            _cache.Set(cacheKey, result, cacheOptions);
 
             return result;
         }
-        private async Task TrackPopularSearchAsync(string? term)
-        {
-            if (string.IsNullOrWhiteSpace(term) || term.Length < 3)
-                return;
-
-            var key = "cards:popular";
-            var db = _redis.GetDatabase();
-
-            await db.SortedSetIncrementAsync(key, term.ToLower(), 1);
-        }
-
-
 
         public async Task<IEnumerable<string>> GetDistinctRaritiesAsync()
         {

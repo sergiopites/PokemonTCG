@@ -3,7 +3,6 @@ using PokemonTCG.API.Data;
 using PokemonTCG.API.Repositories;
 using PokemonTCG.API.Services;
 using Serilog;
-using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -65,20 +64,8 @@ builder.Services.AddScoped<IResistanceRepository, ResistanceRepository>();
 builder.Services.AddScoped<ISetImageRepository, SetImageRepository>();
 builder.Services.AddScoped<IDeckRepository, DeckRepository>();
 builder.Services.AddScoped<IDeckService, DeckService>();
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = builder.Configuration.GetConnectionString("Redis");
-    options.InstanceName = "PokemonTCG:";
-});
-builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
-{
-    var config = ConfigurationOptions.Parse(
-        builder.Configuration.GetConnectionString("Redis"),
-        true
-    );
-
-    return ConnectionMultiplexer.Connect(config);
-});
+builder.Services.AddScoped<ICollectionRepository, CollectionRepository>();
+builder.Services.AddScoped<ICollectionService, CollectionService>();
 
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();

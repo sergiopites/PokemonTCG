@@ -152,7 +152,7 @@ export default function TableMenu() {
                             }}
                             onClick={() => toggleMenu("decks")}
                         >
-                            <span>🧩 Decks ▾</span>
+                        <span>🧩 Decks & Collections ▾</span>
                             {openMenu === "decks" && (
                                 <ul
                                     style={{
@@ -166,13 +166,18 @@ export default function TableMenu() {
                                         margin: "6px 0 0",
                                         boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
                                         borderRadius: "10px",
-                                        width: "180px",
+                                        width: "200px",
                                         zIndex: 1000,
                                     }}
                                 >
                                     <li className="px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
                                         <Link to="/CreateDeck" style={{ color: "#059669", fontWeight: "500" }}>
                                             Build Deck
+                                        </Link>
+                                    </li>
+                                    <li className="px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
+                                        <Link to="/CreateCollection" style={{ color: "#0369a1", fontWeight: "500" }}>
+                                            Build Collection
                                         </Link>
                                     </li>
                                 </ul>

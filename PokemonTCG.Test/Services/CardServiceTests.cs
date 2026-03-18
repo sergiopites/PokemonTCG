@@ -3,6 +3,7 @@ using Moq;
 using PokemonTCG.API.DTOs;
 using PokemonTCG.API.Helpers;
 using PokemonTCG.API.Repositories;
+using PokemonTCG.API.Responses;
 using PokemonTCG.API.Services;
 
 namespace PokemonTCG.Test.Services
@@ -20,12 +21,18 @@ namespace PokemonTCG.Test.Services
         private readonly Mock<IAncientTraitRepository> _ancientTraitRepo = new();
 
         private CardService CreateService() => new(
-            _cardRepo.Object, _logger.Object,
-            _setRepo.Object, _cardImageRepo.Object, _legalityRepo.Object,
-            _abilityRepo.Object, _attackRepo.Object, _tcgPlayerRepo.Object,
-            _ancientTraitRepo.Object);
+            _cardRepo.Object,
+            _logger.Object,
+            _setRepo.Object,
+            _cardImageRepo.Object,
+            _legalityRepo.Object,
+            _abilityRepo.Object,
+            _attackRepo.Object,
+            _tcgPlayerRepo.Object,
+            _ancientTraitRepo.Object
+        );
 
-        // ?? SearchCardsAsync (delegates to repo) ?????????????????????????
+        // — SearchCardsAsync (delegates to repo) —
 
         [Fact]
         public async Task SearchCardsAsync_DelegatesToRepository()
@@ -44,7 +51,7 @@ namespace PokemonTCG.Test.Services
             Assert.Single(result.Items);
         }
 
-        // ?? GetCardsByNameAsync ??????????????????????????????????????????
+        // — GetCardsByNameAsync —
 
         [Fact]
         public async Task GetCardsByNameAsync_ReturnsMappedResponse()
@@ -68,7 +75,7 @@ namespace PokemonTCG.Test.Services
             Assert.Equal(2, result.TotalCount);
         }
 
-        // ?? GetCardsByRarityAsync ????????????????????????????????????????
+        // — GetCardsByRarityAsync —
 
         [Fact]
         public async Task GetCardsByRarityAsync_ReturnsMappedResponse()
@@ -86,7 +93,7 @@ namespace PokemonTCG.Test.Services
             Assert.Equal(5, result.TotalCount);
         }
 
-        // ?? GetCardsByTypeAsync ??????????????????????????????????????????
+        // — GetCardsByTypeAsync —
 
         [Fact]
         public async Task GetCardsByTypeAsync_ReturnsMappedResponse()
@@ -104,7 +111,7 @@ namespace PokemonTCG.Test.Services
             Assert.Equal(3, result.TotalCount);
         }
 
-        // ?? GetCardsBySupertypeAsync ?????????????????????????????????????
+        // — GetCardsBySupertypeAsync —
 
         [Fact]
         public async Task GetCardsBySupertypeAsync_ReturnsMappedResponse()
@@ -122,7 +129,7 @@ namespace PokemonTCG.Test.Services
             Assert.Equal(10, result.TotalCount);
         }
 
-        // ?? GetCardsBySubtypeAsync ???????????????????????????????????????
+        // — GetCardsBySubtypeAsync —
 
         [Fact]
         public async Task GetCardsBySubtypeAsync_ReturnsMappedResponse()
@@ -140,7 +147,7 @@ namespace PokemonTCG.Test.Services
             Assert.Equal(7, result.TotalCount);
         }
 
-        // ?? GetCardsBySetAsync ???????????????????????????????????????????
+        // — GetCardsBySetAsync —
 
         [Fact]
         public async Task GetCardsBySetAsync_ReturnsMappedResponse()
@@ -158,7 +165,7 @@ namespace PokemonTCG.Test.Services
             Assert.Equal(15, result.TotalCount);
         }
 
-        // ?? GetDistinct* ?????????????????????????????????????????????????
+        // — GetDistinct* —
 
         [Fact]
         public async Task GetDistinctTypesAsync_ReturnsMapped()

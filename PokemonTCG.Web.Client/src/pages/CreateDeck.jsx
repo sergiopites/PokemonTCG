@@ -92,16 +92,16 @@ export default function CreateDeck() {
     useEffect(() => {
         const fetchCards = async () => {
             try {
-                const params = new URLSearchParams({
-                    name: search || "",
-                    setId: setId || "",
-                    subtype: subtype || "",
-                    type: type || "",
-                    supertype: supertype || "",
-                    rarity: rarity || "",
-                    page: String(page),
-                    pageSize: "55",
-                });
+                const params = new URLSearchParams();
+
+                if (search) params.append("name", search);
+                if (setId) params.append("setId", setId);
+                if (subtype) params.append("subtype", subtype);
+                if (type) params.append("type", type);
+                if (supertype) params.append("supertype", supertype);
+                if (rarity) params.append("rarity", rarity);
+                params.append("page", String(page));
+                params.append("pageSize", "55");
 
                 const res = await fetch(`${API_URL}/api/card/search?${params.toString()}`);
                 if (!res.ok) throw new Error("Error searching for cards");
@@ -520,7 +520,6 @@ export default function CreateDeck() {
             const data = await res.json();
             console.log("AutoDeck full response:", data);
 
-            // Validar estructura esperada
             if (!data || !Array.isArray(data.cards)) {
                 console.error("❌ Invalid /autodeck response structure:", data);
                 throw new Error("❌ Invalid response from /autodeck — expected { cards: [...] }");
@@ -528,10 +527,30 @@ export default function CreateDeck() {
 
             const autoDeck = data.cards;
 
-            // Agregar todas las cartas al mazo
-            autoDeck.forEach((card) => toggleCard(card));
+            // Aggregate all cards into a grouped map in one pass
+            const grouped = {};
+            for (const card of autoDeck) {
+                const id = card.cardId ?? card.id ?? `${card.name}-${card.setId}`;
+                if (!grouped[id]) {
+                    grouped[id] = {
+                        cardId: id,
+                        name: card.name ?? "Unknown",
+                        supertype: card.supertype ?? card.superType ?? "",
+                        subtype: card.subtype ?? card.subType ?? "",
+                        quantity: 0,
+                        ptcgocode: card.ptcgocode ?? card.ptcgoCode ?? "",
+                        number: card.number ?? "",
+                        imageLarge: card.imageLarge ?? card.imageUrl ?? "",
+                    };
+                }
+                grouped[id].quantity += 1;
+            }
 
-            // ---- 🧩 Determinar Pokémon predominante y tipo ----
+            const newDeck = Object.values(grouped);
+            const totalQty = newDeck.reduce((sum, c) => sum + c.quantity, 0);
+
+            setSelectedCards(newDeck);
+
             const dominantPokemon =
                 (Array.isArray(data.powerPokémon) && data.powerPokémon.length > 0)
                     ? data.powerPokémon[0]
@@ -539,9 +558,8 @@ export default function CreateDeck() {
 
             const dominantType = data.dominantType ?? "Unknown";
 
-            // ---- 💾 Actualizar nombre del mazo ----
             setName(`${dominantPokemon} - ${dominantType}`);
-            setMessage(`✅ Deck ${dominantPokemon} - ${dominantType} created successfully (60 cards)`);
+            setMessage(`✅ Deck ${dominantPokemon} - ${dominantType} created successfully (${totalQty} cards)`);
 
         } catch (err) {
             console.error("Error in handleAutoDeck:", err);

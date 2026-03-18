@@ -45,5 +45,6 @@ namespace PokemonTCG.API.Models
         [Required]
         public string ExternalId { get; set; }  // ID de la API                
         public ICollection<DeckCard> DeckCards { get; set; } = new List<DeckCard>();
+        public ICollection<CollectionCard> CollectionCards { get; set; } = new List<CollectionCard>();
     }
 }
