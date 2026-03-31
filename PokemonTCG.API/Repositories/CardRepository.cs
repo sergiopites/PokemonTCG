@@ -180,6 +180,18 @@ namespace PokemonTCG.API.Repositories
             if (!string.IsNullOrWhiteSpace(type))
                 query = query.Where(c => c.Types.Contains(type));
 
+            if (!string.IsNullOrWhiteSpace(supertype))
+                query = query.Where(c => c.SuperType == supertype);
+
+            if (!string.IsNullOrWhiteSpace(subtype))
+                query = query.Where(c => c.SubTypes.Contains(subtype));
+
+            if (!string.IsNullOrWhiteSpace(rarity))
+                query = query.Where(c => c.Rarity == rarity);
+
+            if (!string.IsNullOrWhiteSpace(ptcgoCode))
+                query = query.Where(c => c.Set.PtcgoCode == ptcgoCode);
+
             if (!string.IsNullOrWhiteSpace(number))
                 query = query.Where(c => c.Number == number);
 
@@ -196,7 +208,14 @@ namespace PokemonTCG.API.Repositories
                     SetName = c.Set.Name,
                     SetId = c.Set.SetId,
                     Ptcgocode = c.Set.PtcgoCode,
-                    ImageLarge = c.CardImage != null ? c.CardImage.Large : null
+                    ImageLarge = c.CardImage != null ? c.CardImage.Large : null,
+                    Supertype = c.SuperType,
+                    Subtype = c.SubTypes,
+                    Type = c.Types,
+                    Rarity = c.Rarity,
+                    Number = c.Number,
+                    EvolvesFrom = c.EvolvesFrom,
+                    EvolvesTo = c.EvolvesTo
                 })
                 .ToListAsync();
 

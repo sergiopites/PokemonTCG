@@ -23,6 +23,8 @@ export default function CreateCollection() {
     const [availableTypes, setAvailableTypes] = useState([]);
     const [availableSubTypes, setAvailableSubTypes] = useState([]);
     const [availableRarities, setAvailableRarities] = useState([]);
+    const [exporting, setExporting] = useState(false);
+    const [backImagePath, setBackImagePath] = useState("");
 
     const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -118,6 +120,80 @@ export default function CreateCollection() {
 
         fetchCards();
     }, [search, number, setId, supertype, type, subtype, rarity, page, API_URL]);
+
+    useEffect(() => {
+        fetch("/config.json")
+            .then(res => res.json())
+            .then(config => setBackImagePath(config.backImagePath))
+            .catch(() => setBackImagePath(""));
+    }, []);
+
+    const handleDownloadCollectionPdf = async () => {
+        try {
+            setExporting(true);
+
+            if (!selectedCards || selectedCards.length === 0) {
+                alert("There are no cards in the collection to print.");
+                setExporting(false);
+                return;
+            }
+
+            const imageUrls = [];
+            for (const c of selectedCards) {
+                if (c.imageLarge) {
+                    for (let i = 0; i < (c.quantity || 1); i++) {
+                        imageUrls.push(c.imageLarge);
+                    }
+                } else {
+                    console.warn(`?? Card without image: ${c.name}`);
+                }
+            }
+
+            if (backImagePath) {
+                const total = imageUrls.length;
+                for (let i = 0; i < total; i++) {
+                    imageUrls.push(backImagePath);
+                }
+            }
+
+            if (imageUrls.length === 0) {
+                alert("No images suitable for printing were found.");
+                setExporting(false);
+                return;
+            }
+
+            const collectionFileName = name?.trim() || "Collection";
+            const safeFileName = collectionFileName.replace(/\s+/g, "_").replace(/[^\w\-\.]/g, "");
+
+            const response = await fetch(`${API_URL}/api/printer/generatedeck`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    imageUrls,
+                    fileName: safeFileName,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error generating PDF: ${response.status} - ${response.statusText}`);
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${safeFileName}.pdf`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+
+            console.log(`? PDF generated successfully: ${safeFileName}.pdf`);
+        } catch (error) {
+            console.error("? Error generating PDF collection:", error);
+            alert("The collection couldn't download. Try again later.");
+        } finally {
+            setExporting(false);
+        }
+    };
 
     const getTotalSelected = (arr) =>
         arr.reduce((s, c) => s + (Number(c.quantity) || 0), 0);
@@ -389,9 +465,46 @@ export default function CreateCollection() {
                         >
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                                 <h3 style={{ margin: 0, color: "#1e40af", fontSize: "1rem", fontWeight: 700 }}>Collection Cards</h3>
-                                <span style={{ fontSize: "0.95rem", color: "#334155" }}>
-                                    Unique: <strong>{selectedCards.length}</strong> — Total: <strong>{getTotalSelected(selectedCards)}</strong>
-                                </span>
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <span style={{ fontSize: "0.95rem", color: "#334155" }}>
+                                        Unique: <strong>{selectedCards.length}</strong> — Total: <strong>{getTotalSelected(selectedCards)}</strong>
+                                    </span>
+                                    <button
+                                        onClick={handleDownloadCollectionPdf}
+                                        disabled={exporting}
+                                        style={{
+                                            padding: "8px 14px",
+                                            borderRadius: "8px",
+                                            backgroundColor: exporting ? "#9ca3af" : "#2563eb",
+                                            color: "#fff",
+                                            fontWeight: "600",
+                                            border: "none",
+                                            cursor: exporting ? "not-allowed" : "pointer",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "8px",
+                                        }}
+                                    >
+                                        {exporting ? (
+                                            <>
+                                                <div
+                                                    className="spinner"
+                                                    style={{
+                                                        border: "2px solid #f3f3f3",
+                                                        borderTop: "2px solid white",
+                                                        borderRadius: "50%",
+                                                        width: "16px",
+                                                        height: "16px",
+                                                        animation: "spin 1s linear infinite",
+                                                    }}
+                                                />
+                                                Exporting PDF...
+                                            </>
+                                        ) : (
+                                            "Export PDF"
+                                        )}
+                                    </button>
+                                </div>
                             </div>
 
                             <div
@@ -463,8 +576,8 @@ export default function CreateCollection() {
                                                                 maxWidth: "280px",
                                                             }}
                                                         >
-                                                            {c.supertype ?? "—"} {c.number ? ` • #${c.number}` : ""}{" "}
-                                                            {c.setName ? ` • ${c.setName}` : ""}
+                                                            {c.supertype ?? "\u2014"} {c.number ? ` \u2022 #${c.number}` : ""}{" "}
+                                                            {c.setName ? ` \u2022 ${c.setName}` : ""}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -668,7 +781,7 @@ export default function CreateCollection() {
                                             ? "green"
                                             : message.includes("?")
                                                 ? "red"
-                                                : message.includes("??")
+                                                : message.includes("?")
                                                     ? "orange"
                                                     : "blue",
                                     }}

@@ -390,7 +390,7 @@ export default function SearchCard() {
                     onClick={() => setPage((p) => p - 1)}
                     style={{ padding: "4px 6px", borderRadius: "4px", border: "1px solid #ddd" }}
                 >
-                    ⬅
+                   ⬅
                 </button>
 
                 <span style={{ fontWeight: "bold", color: "#1f2937" }}>
