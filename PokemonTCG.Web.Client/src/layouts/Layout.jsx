@@ -180,6 +180,11 @@ export default function TableMenu() {
                                             Build Collection
                                         </Link>
                                     </li>
+                                    <li className="px-4 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
+                                        <Link to="/UpdateCollection" style={{ color: "#0369a1", fontWeight: "500" }}>
+                                            Update Collection
+                                        </Link>
+                                    </li>
                                 </ul>
                             )}
                         </td>

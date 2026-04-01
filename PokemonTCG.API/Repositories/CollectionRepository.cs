@@ -63,5 +63,75 @@ namespace PokemonTCG.API.Repositories
                 throw;
             }
         }
+
+        public async Task<List<CollectionDetailDTO>> GetAllCollectionsAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var collections = await _context.Collections
+                    .Include(c => c.CollectionCards)
+                    .ToListAsync(cancellationToken);
+
+                return collections.Select(c => new CollectionDetailDTO
+                {
+                    CollectionId = c.CollectionId,
+                    Name = c.Name,
+                    Description = c.Description,
+                    Cards = c.CollectionCards.Select(cc => new CollectionCardDTO
+                    {
+                        CardId = cc.CardId,
+                        Quantity = cc.Quantity
+                    }).ToList()
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all collections.");
+                throw;
+            }
+        }
+
+        public async Task<CollectionDetailDTO?> GetCollectionByIdAsync(int collectionId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var collection = await _context.Collections
+                    .Include(c => c.CollectionCards)
+                        .ThenInclude(cc => cc.Card)
+                            .ThenInclude(card => card.CardImage)
+                    .Include(c => c.CollectionCards)
+                        .ThenInclude(cc => cc.Card)
+                            .ThenInclude(card => card.Set)
+                    .FirstOrDefaultAsync(c => c.CollectionId == collectionId, cancellationToken);
+
+                if (collection == null)
+                    return null;
+
+                return new CollectionDetailDTO
+                {
+                    CollectionId = collection.CollectionId,
+                    Name = collection.Name,
+                    Description = collection.Description,
+                    Cards = collection.CollectionCards.Select(cc => new CollectionCardDTO
+                    {
+                        CardId = cc.CardId,
+                        Quantity = cc.Quantity,
+                        Name = cc.Card?.Name,
+                        ImageLarge = cc.Card?.CardImage?.Large?.ToString(),
+                        Supertype = cc.Card?.SuperType,
+                        Subtype = cc.Card?.SubTypes,
+                        Number = cc.Card?.Number,
+                        SetName = cc.Card?.Set?.Name,
+                        SetId = cc.Card?.SetId,
+                        Ptcgocode = cc.Card?.Set?.PtcgoCode
+                    }).ToList()
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting collection by id.");
+                throw;
+            }
+        }
     }
 }

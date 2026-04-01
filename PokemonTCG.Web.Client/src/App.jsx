@@ -10,6 +10,7 @@ import CardDetail from "./pages/carddetail";
 import CardsBySet from "./pages/CardsBySet";
 import CreateDecks from "./pages/CreateDeck";
 import CreateCollection from "./pages/CreateCollection";
+import UpdateCollection from "./pages/UpdateCollection";
 import SearchCard from "./pages/SearchCard";
 export default function App() {
     return (
@@ -30,6 +31,7 @@ export default function App() {
                     {/* Páginas secundarias */}
                     <Route path="createdeck" element={<CreateDecks />} />
                     <Route path="createcollection" element={<CreateCollection />} />
+                    <Route path="updatecollection" element={<UpdateCollection />} />
                     <Route path="accessories" element={<div>Accessories Page</div>} />
                     <Route path="about" element={<div>About Page</div>} />
 
