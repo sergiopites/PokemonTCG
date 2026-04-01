@@ -551,15 +551,14 @@ export default function CreateDeck() {
 
             setSelectedCards(newDeck);
 
-            const dominantPokemon =
-                (Array.isArray(data.powerPokémon) && data.powerPokémon.length > 0)
-                    ? data.powerPokémon[0]
-                    : "Unknown";
+            const deckName = data.deckName ?? `${(data.powerPokémon?.[0] ?? newDeck[0]?.name ?? "Unknown")} - ${data.dominantType ?? "Unknown"}`;
+            const pokemonCount = data["pokémon"] ?? data.pokemon ?? 0;
+            const trainerCount = data.trainers ?? 0;
+            const energyCount = data.energy ?? 0;
 
-            const dominantType = data.dominantType ?? "Unknown";
-
-            setName(`${dominantPokemon} - ${dominantType}`);
-            setMessage(`✅ Deck ${dominantPokemon} - ${dominantType} created successfully (${totalQty} cards)`);
+            setName(deckName);
+            setDescription(`Pokémon: ${pokemonCount} | Trainers: ${trainerCount} | Energy: ${energyCount}`);
+            setMessage(`✅ Deck "${deckName}" built successfully (${totalQty} cards: ${pokemonCount} Pokémon, ${trainerCount} Trainers, ${energyCount} Energy)`);
 
         } catch (err) {
             console.error("Error in handleAutoDeck:", err);

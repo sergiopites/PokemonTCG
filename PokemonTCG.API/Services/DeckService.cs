@@ -1,4 +1,4 @@
-Ôªøusing PokemonTCG.API.DTOs;
+using PokemonTCG.API.DTOs;
 using PokemonTCG.API.Repositories;
 using PokemonTCG.API.Request;
 using PokemonTCG.API.Responses;
@@ -55,13 +55,19 @@ namespace PokemonTCG.API.Services
             const int TARGET = 60;
             const int MAX_COPIES = 4;
 
-            // proporciones (puedes ajustarlas)
-            int pokemonCount = rnd.Next(16, 20);
-            int trainerCount = rnd.Next(20, 26);
-            int energyCount = TARGET - (pokemonCount + trainerCount);
+            // Pokemon TCG official rules:
+            // - Exactly 60 cards
+            // - Max 4 copies of any card with same name (except Basic Energy = unlimited)
+            // - Must have at least 1 Basic Pokemon to start the game
+            // - Evolution lines need their pre-evolutions in the deck
+            // - Competitive ratios: ~15-20 Pokemon, ~25-30 Trainers, ~10-15 Energy
 
-            // obtener pools grandes
-            var pokemon = await _cardRepository.SearchCardsAsync(supertype: "Pok√©mon", page: 1, pageSize: 2000);
+            int pokemonTarget = rnd.Next(15, 21);
+            int trainerTarget = rnd.Next(25, 31);
+            int energyTarget = TARGET - (pokemonTarget + trainerTarget);
+            if (energyTarget < 8) { trainerTarget -= (8 - energyTarget); energyTarget = 8; }
+
+            var pokemon = await _cardRepository.SearchCardsAsync(supertype: "PokÈmon", page: 1, pageSize: 2000);
             var trainer = await _cardRepository.SearchCardsAsync(supertype: "Trainer", page: 1, pageSize: 2000);
             var energy = await _cardRepository.SearchCardsAsync(supertype: "Energy", page: 1, pageSize: 1000);
 
@@ -69,58 +75,50 @@ namespace PokemonTCG.API.Services
             var trainerPool = trainer.Items?.ToList() ?? new List<CardDetailDTO>();
             var energyPool = energy.Items?.ToList() ?? new List<CardDetailDTO>();
 
-            if (!pokemonPool.Any()) throw new Exception("No hay cartas Pok√©mon disponibles.");
+            if (!pokemonPool.Any()) throw new Exception("No PokÈmon cards available.");
 
-            // normalizadores sencillos
-            string normalize(string s) => string.IsNullOrWhiteSpace(s) ? "" :
-                Regex.Replace(s.ToLowerInvariant().Trim(), @"[\(\)\[\]""'`¬¥‚Äô‚Äî‚Äì\-]+", "").Trim();
+            string Normalize(string s) => string.IsNullOrWhiteSpace(s) ? "" :
+                Regex.Replace(s.ToLowerInvariant().Trim(), @"[\(\)\[\]""'`¥'óñ\-]+", "").Trim();
 
-            // elegir tipo dominante
+            bool IsBasic(CardDetailDTO c) =>
+                (c.Subtype ?? "").IndexOf("basic", StringComparison.OrdinalIgnoreCase) >= 0;
+
+            bool IsBasicEnergy(CardDetailDTO c) =>
+                (c.Supertype ?? "").Equals("Energy", StringComparison.OrdinalIgnoreCase) &&
+                ((c.Subtype ?? "").IndexOf("basic", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                 string.IsNullOrWhiteSpace(c.Subtype));
+
+            // Choose dominant type from types with enough cards
             var typeGroups = pokemonPool
                 .Where(p => !string.IsNullOrWhiteSpace(p.Type))
                 .GroupBy(p => p.Type)
+                .Where(g => g.Count() >= 10)
                 .OrderByDescending(g => g.Count())
                 .ToList();
 
             var dominantType = typeGroups.Any()
-                ? typeGroups[Math.Min(rnd.Next(3), typeGroups.Count - 1)].Key
+                ? typeGroups[Math.Min(rnd.Next(Math.Min(3, typeGroups.Count)), typeGroups.Count - 1)].Key
                 : pokemonPool.First().Type ?? "Colorless";
 
             var byType = pokemonPool.Where(p => p.Type == dominantType).ToList();
-            if (!byType.Any()) byType = pokemonPool;
+            if (byType.Count < 10) byType = pokemonPool;
 
-            // detectar power pok√©mon
-            var powerPokemons = byType
-                .Where(p =>
-                    (p.Name?.IndexOf(" v", StringComparison.OrdinalIgnoreCase) >= 0) ||
-                    (p.Name?.IndexOf(" ex", StringComparison.OrdinalIgnoreCase) >= 0) ||
-                    (p.Name?.IndexOf(" vmax", StringComparison.OrdinalIgnoreCase) >= 0) ||
-                    (p.Name?.IndexOf(" vstar", StringComparison.OrdinalIgnoreCase) >= 0)
-                )
-                .GroupBy(p => normalize(p.Name))
-                .Select(g => g.First())
-                .ToList();
-
-            var selectedPower = powerPokemons.OrderBy(_ => rnd.Next()).Take(Math.Min(3, Math.Max(1, powerPokemons.Count))).ToList();
-
-            // helpers
+            // Helper to find card by name in same set preferably
             CardDetailDTO FindByNameInSet(List<CardDetailDTO> pool, string name, string setId)
             {
                 if (string.IsNullOrWhiteSpace(name)) return null;
-                var n = normalize(name);
-                return pool.FirstOrDefault(p => normalize(p.Name) == n && p.SetId == setId)
-                    ?? pool.FirstOrDefault(p => normalize(p.Name) == n);
+                var n = Normalize(name);
+                return pool.FirstOrDefault(p => Normalize(p.Name) == n && p.SetId == setId)
+                    ?? pool.FirstOrDefault(p => Normalize(p.Name) == n);
             }
 
+            // Build full evolution line starting from any member
             List<CardDetailDTO> BuildFullLine(CardDetailDTO seed, List<CardDetailDTO> pool)
             {
                 var line = new List<CardDetailDTO>();
                 if (seed == null) return line;
 
-                string seedName = seed.Name;
-                string seedSet = seed.SetId;
                 var current = seed;
-
                 while (current != null)
                 {
                     var prevName = current.EvolvesFrom;
@@ -139,92 +137,284 @@ namespace PokemonTCG.API.Services
                     var nextName = nextNameRaw.Split(new[] { ',', '/' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim();
                     var next = FindByNameInSet(pool, nextName, walker.SetId);
                     if (next == null) break;
-                    if (line.Any(x => normalize(x.Name) == normalize(next.Name))) break;
+                    if (line.Any(x => Normalize(x.Name) == Normalize(next.Name))) break;
                     walker = next;
                 }
 
-                return line.DistinctBy(x => normalize(x.Name)).ToList();
+                return line.DistinctBy(x => Normalize(x.Name)).ToList();
             }
 
-            // Pok√©mon
+            // Track copies by name
+            var copyCount = new Dictionary<string, int>();
+            int CountCopies(string name) => copyCount.TryGetValue(Normalize(name), out var c) ? c : 0;
+            void AddCopy(string name) { var n = Normalize(name); copyCount[n] = CountCopies(name) + 1; }
+
+            // === BUILD POKEMON SECTION ===
             var finalPokemon = new List<CardDetailDTO>();
-            foreach (var p in selectedPower)
-            {
-                if (finalPokemon.Count >= pokemonCount) break;
-                if (finalPokemon.Count(x => normalize(x.Name) == normalize(p.Name)) < MAX_COPIES)
-                    finalPokemon.Add(p);
-            }
 
-            var basicsCandidates = byType
-                .Where(p => (p.Subtype ?? "").IndexOf("basic", StringComparison.OrdinalIgnoreCase) >= 0)
+            // Detect power Pokemon (V, ex, VMAX, VSTAR) - these are Basic Rule Box cards
+            var powerPokemons = byType
+                .Where(p => IsBasic(p) &&
+                    ((p.Name?.IndexOf(" v", StringComparison.OrdinalIgnoreCase) >= 0) ||
+                     (p.Name?.IndexOf(" ex", StringComparison.OrdinalIgnoreCase) >= 0) ||
+                     (p.Name?.IndexOf(" vmax", StringComparison.OrdinalIgnoreCase) >= 0) ||
+                     (p.Name?.IndexOf(" vstar", StringComparison.OrdinalIgnoreCase) >= 0)))
+                .GroupBy(p => Normalize(p.Name))
+                .Select(g => g.First())
                 .OrderBy(_ => rnd.Next())
+                .Take(3)
                 .ToList();
 
-            foreach (var baseCandidate in basicsCandidates)
+            // Add power Pokemon (max 4 copies each)
+            foreach (var p in powerPokemons)
             {
-                if (finalPokemon.Count >= pokemonCount) break;
-                var line = BuildFullLine(baseCandidate, byType);
-                if (line.Count == 0) continue;
-
-                foreach (var c in line)
+                int copiesToAdd = rnd.Next(2, 4);
+                for (int i = 0; i < copiesToAdd && finalPokemon.Count < pokemonTarget; i++)
                 {
-                    var currentCopies = finalPokemon.Count(x => normalize(x.Name) == normalize(c.Name));
-                    if (currentCopies < MAX_COPIES && finalPokemon.Count < pokemonCount)
-                        finalPokemon.Add(c);
+                    if (CountCopies(p.Name) < MAX_COPIES)
+                    {
+                        finalPokemon.Add(p);
+                        AddCopy(p.Name);
+                    }
                 }
             }
 
-            // rellenar pok√©mon si faltan
-            var poolByName = byType.OrderBy(_ => rnd.Next()).ToList();
+            // Build evolution lines from Basic Pokemon with proper ratios
+            // Rule: More Basics than Stage 1, more Stage 1 than Stage 2
+            var basicCandidates = byType
+                .Where(p => IsBasic(p) &&
+                    !string.IsNullOrWhiteSpace(p.EvolvesTo) &&
+                    !powerPokemons.Any(pp => Normalize(pp.Name) == Normalize(p.Name)))
+                .GroupBy(p => Normalize(p.Name))
+                .Select(g => g.First())
+                .OrderBy(_ => rnd.Next())
+                .ToList();
+
+            foreach (var basicCard in basicCandidates)
+            {
+                if (finalPokemon.Count >= pokemonTarget) break;
+
+                var line = BuildFullLine(basicCard, byType);
+                if (line.Count == 0 || !IsBasic(line[0])) continue;
+
+                // Proper evolution ratios: e.g. 4 Basic, 3 Stage 1, 2 Stage 2
+                for (int stage = 0; stage < line.Count; stage++)
+                {
+                    var card = line[stage];
+                    int copies;
+                    if (stage == 0) copies = Math.Min(rnd.Next(3, 5), MAX_COPIES);
+                    else if (stage == 1) copies = Math.Min(rnd.Next(2, 4), MAX_COPIES);
+                    else copies = Math.Min(rnd.Next(1, 3), MAX_COPIES);
+
+                    for (int i = 0; i < copies && finalPokemon.Count < pokemonTarget; i++)
+                    {
+                        if (CountCopies(card.Name) < MAX_COPIES)
+                        {
+                            finalPokemon.Add(card);
+                            AddCopy(card.Name);
+                        }
+                    }
+                }
+            }
+
+            // Fill remaining Pokemon slots with standalone Basics (no evolution)
+            var standaloneBasics = byType
+                .Where(p => IsBasic(p) &&
+                    string.IsNullOrWhiteSpace(p.EvolvesTo) &&
+                    !finalPokemon.Any(fp => Normalize(fp.Name) == Normalize(p.Name)))
+                .GroupBy(p => Normalize(p.Name))
+                .Select(g => g.First())
+                .OrderBy(_ => rnd.Next())
+                .ToList();
+
+            foreach (var basic in standaloneBasics)
+            {
+                if (finalPokemon.Count >= pokemonTarget) break;
+                int copies = rnd.Next(1, 3);
+                for (int i = 0; i < copies && finalPokemon.Count < pokemonTarget; i++)
+                {
+                    if (CountCopies(basic.Name) < MAX_COPIES)
+                    {
+                        finalPokemon.Add(basic);
+                        AddCopy(basic.Name);
+                    }
+                }
+            }
+
+            // Safety fill from Basics only
+            var anyBasics = byType.Where(p => IsBasic(p)).OrderBy(_ => rnd.Next()).ToList();
+            if (!anyBasics.Any()) anyBasics = pokemonPool.Where(p => IsBasic(p)).OrderBy(_ => rnd.Next()).ToList();
             int safety = 0;
-            while (finalPokemon.Count < pokemonCount && safety++ < 10000)
+            while (finalPokemon.Count < pokemonTarget && anyBasics.Any() && safety++ < 5000)
             {
-                var cand = poolByName[rnd.Next(poolByName.Count)];
-                var curCopies = finalPokemon.Count(x => normalize(x.Name) == normalize(cand.Name));
-                if (curCopies < MAX_COPIES)
+                var cand = anyBasics[rnd.Next(anyBasics.Count)];
+                if (CountCopies(cand.Name) < MAX_COPIES)
+                {
                     finalPokemon.Add(cand);
+                    AddCopy(cand.Name);
+                }
             }
 
-            // Trainers
-            var finalTrainers = new List<CardDetailDTO>();
-            var trainerShuffled = trainerPool.OrderBy(_ => rnd.Next()).ToList();
-            foreach (var t in trainerShuffled)
+            // RULE: Must have at least 1 Basic Pokemon
+            if (!finalPokemon.Any(IsBasic))
             {
-                if (finalTrainers.Count >= trainerCount) break;
-                var curCopies = finalTrainers.Count(x => normalize(x.Name) == normalize(t.Name));
-                if (curCopies < MAX_COPIES)
-                    finalTrainers.Add(t);
+                var emergencyBasic = byType.FirstOrDefault(IsBasic)
+                    ?? pokemonPool.FirstOrDefault(IsBasic);
+                if (emergencyBasic != null)
+                {
+                    if (finalPokemon.Count >= pokemonTarget && finalPokemon.Count > 0)
+                        finalPokemon[finalPokemon.Count - 1] = emergencyBasic;
+                    else
+                        finalPokemon.Add(emergencyBasic);
+                    AddCopy(emergencyBasic.Name);
+                }
             }
 
-            // Energies
-            var energyByType = energyPool.Where(e => (e.Name ?? "").IndexOf(dominantType, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
-            if (!energyByType.Any()) energyByType = energyPool;
-            var chosenEnergy = energyByType.OrderBy(_ => rnd.Next()).FirstOrDefault();
-            var finalEnergies = Enumerable.Repeat(chosenEnergy, Math.Max(0, energyCount)).ToList();
+            // === BUILD TRAINER SECTION ===
+            // Include variety: Supporters, Items, Stadiums, Tools
+            var finalTrainers = new List<CardDetailDTO>();
 
-            // ensamblaje
+            var supporters = trainerPool
+                .Where(t => (t.Subtype ?? "").IndexOf("supporter", StringComparison.OrdinalIgnoreCase) >= 0)
+                .GroupBy(t => Normalize(t.Name)).Select(g => g.First()).OrderBy(_ => rnd.Next()).ToList();
+
+            var items = trainerPool
+                .Where(t => (t.Subtype ?? "").IndexOf("item", StringComparison.OrdinalIgnoreCase) >= 0)
+                .GroupBy(t => Normalize(t.Name)).Select(g => g.First()).OrderBy(_ => rnd.Next()).ToList();
+
+            var stadiums = trainerPool
+                .Where(t => (t.Subtype ?? "").IndexOf("stadium", StringComparison.OrdinalIgnoreCase) >= 0)
+                .GroupBy(t => Normalize(t.Name)).Select(g => g.First()).OrderBy(_ => rnd.Next()).ToList();
+
+            var tools = trainerPool
+                .Where(t => (t.Subtype ?? "").IndexOf("tool", StringComparison.OrdinalIgnoreCase) >= 0)
+                .GroupBy(t => Normalize(t.Name)).Select(g => g.First()).OrderBy(_ => rnd.Next()).ToList();
+
+            int supporterCount = Math.Min(rnd.Next(8, 13), supporters.Count * MAX_COPIES);
+            int itemCount = Math.Min(rnd.Next(10, 15), items.Count * MAX_COPIES);
+            int stadiumCount = Math.Min(rnd.Next(2, 4), stadiums.Count * MAX_COPIES);
+            int toolCount = Math.Min(rnd.Next(2, 4), tools.Count * MAX_COPIES);
+
+            void AddTrainers(List<CardDetailDTO> pool, int target, List<CardDetailDTO> dest)
+            {
+                int idx = 0;
+                int added = 0;
+                while (added < target && pool.Count > 0)
+                {
+                    var card = pool[idx % pool.Count];
+                    if (CountCopies(card.Name) < MAX_COPIES)
+                    {
+                        dest.Add(card);
+                        AddCopy(card.Name);
+                        added++;
+                    }
+                    idx++;
+                    if (idx >= pool.Count * MAX_COPIES) break;
+                }
+            }
+
+            AddTrainers(supporters, supporterCount, finalTrainers);
+            AddTrainers(items, itemCount, finalTrainers);
+            AddTrainers(stadiums, stadiumCount, finalTrainers);
+            AddTrainers(tools, toolCount, finalTrainers);
+
+            // Fill remaining trainer slots
+            int trainerActualTarget = TARGET - finalPokemon.Count - energyTarget;
+            if (trainerActualTarget < 0) trainerActualTarget = 0;
+
+            var remainingTrainers = trainerPool.OrderBy(_ => rnd.Next()).ToList();
+            safety = 0;
+            while (finalTrainers.Count < trainerActualTarget && remainingTrainers.Any() && safety++ < 5000)
+            {
+                var cand = remainingTrainers[rnd.Next(remainingTrainers.Count)];
+                if (CountCopies(cand.Name) < MAX_COPIES)
+                {
+                    finalTrainers.Add(cand);
+                    AddCopy(cand.Name);
+                }
+            }
+
+            // === BUILD ENERGY SECTION ===
+            // Basic Energy: unlimited copies allowed per Pokemon TCG rules
+            int actualEnergyCount = TARGET - finalPokemon.Count - finalTrainers.Count;
+            if (actualEnergyCount < 0) actualEnergyCount = 0;
+
+            var basicEnergyByType = energyPool
+                .Where(e => IsBasicEnergy(e) &&
+                    (e.Name ?? "").IndexOf(dominantType, StringComparison.OrdinalIgnoreCase) >= 0)
+                .ToList();
+
+            if (!basicEnergyByType.Any())
+                basicEnergyByType = energyPool.Where(IsBasicEnergy).ToList();
+
+            CardDetailDTO primaryEnergy = basicEnergyByType.OrderBy(_ => rnd.Next()).FirstOrDefault();
+
+            // Secondary energy for dual-type coverage
+            var secondaryType = finalPokemon
+                .Where(p => !string.IsNullOrWhiteSpace(p.Type) && p.Type != dominantType)
+                .GroupBy(p => p.Type)
+                .OrderByDescending(g => g.Count())
+                .Select(g => g.Key)
+                .FirstOrDefault();
+
+            CardDetailDTO secondaryEnergy = null;
+            if (secondaryType != null)
+            {
+                secondaryEnergy = energyPool
+                    .Where(e => IsBasicEnergy(e) &&
+                        (e.Name ?? "").IndexOf(secondaryType, StringComparison.OrdinalIgnoreCase) >= 0)
+                    .OrderBy(_ => rnd.Next())
+                    .FirstOrDefault();
+            }
+
+            var finalEnergies = new List<CardDetailDTO>();
+            if (primaryEnergy != null)
+            {
+                int primaryCount = secondaryEnergy != null
+                    ? (int)Math.Ceiling(actualEnergyCount * 0.7)
+                    : actualEnergyCount;
+                int secondaryCount = actualEnergyCount - primaryCount;
+
+                finalEnergies.AddRange(Enumerable.Repeat(primaryEnergy, primaryCount));
+                if (secondaryEnergy != null && secondaryCount > 0)
+                    finalEnergies.AddRange(Enumerable.Repeat(secondaryEnergy, secondaryCount));
+            }
+            else
+            {
+                var anyEnergy = energyPool.OrderBy(_ => rnd.Next()).FirstOrDefault();
+                if (anyEnergy != null)
+                    finalEnergies.AddRange(Enumerable.Repeat(anyEnergy, actualEnergyCount));
+            }
+
+            // === ASSEMBLE FINAL DECK ===
             var combined = new List<CardDetailDTO>();
             combined.AddRange(finalPokemon);
             combined.AddRange(finalTrainers);
             combined.AddRange(finalEnergies);
 
+            // Adjust to exactly 60
             if (combined.Count < TARGET)
             {
                 var need = TARGET - combined.Count;
-                if (chosenEnergy != null)
-                    combined.AddRange(Enumerable.Repeat(chosenEnergy, need));
+                var filler = primaryEnergy ?? energyPool.FirstOrDefault();
+                if (filler != null)
+                    combined.AddRange(Enumerable.Repeat(filler, need));
             }
-
             combined = combined.Take(TARGET).ToList();
 
-            var powerNames = selectedPower.Select(p => p.Name).Distinct().ToList();
+            var powerNames = powerPokemons.Select(p => p.Name).Distinct().ToList();
+
+            var dominantPokemonName = powerNames.Any()
+                ? powerNames.First()
+                : finalPokemon.FirstOrDefault()?.Name ?? "Unknown";
 
             return new DeckDetailResponse
-            {                
+            {
+                DeckName = $"{dominantPokemonName} - {dominantType}",
                 DominantType = dominantType,
-                PowerPok√©mon = powerNames,
+                PowerPokÈmon = powerNames,
                 Total = combined.Count,
-                Pok√©mon = finalPokemon.Count,
+                PokÈmon = finalPokemon.Count,
                 Trainers = finalTrainers.Count,
                 Energy = finalEnergies.Count,
                 Cards = combined.Select(c => new DeckDetailResponse.DeckAutoCardDTO
