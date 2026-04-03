@@ -13,37 +13,6 @@ namespace PokemonTCG.Test.Services
 
         private AbilityService CreateService() => new(_repo.Object, _logger.Object);
 
-        // ?? SaveAbilityAsync ?????????????????????????????????????????????
-
-        [Fact]
-        public void SaveAbilityAsync_WithAbilities_CallsRepository()
-        {
-            var abilities = new List<Ability>
-            {
-                new() { AbilityId = 1, Name = "Blaze" }
-            };
-
-            CreateService().SaveAbilityAsync(abilities);
-
-            _repo.Verify(r => r.SaveAbilityAsync(abilities, It.IsAny<CancellationToken>()), Times.Once);
-        }
-
-        [Fact]
-        public void SaveAbilityAsync_NullList_DoesNotCallRepository()
-        {
-            CreateService().SaveAbilityAsync(null!);
-
-            _repo.Verify(r => r.SaveAbilityAsync(It.IsAny<List<Ability>>(), It.IsAny<CancellationToken>()), Times.Never);
-        }
-
-        [Fact]
-        public void SaveAbilityAsync_EmptyList_DoesNotCallRepository()
-        {
-            CreateService().SaveAbilityAsync(new List<Ability>());
-
-            _repo.Verify(r => r.SaveAbilityAsync(It.IsAny<List<Ability>>(), It.IsAny<CancellationToken>()), Times.Never);
-        }
-
         // ?? GetAbilitiesByCardIdAsync ?????????????????????????????????????
 
         [Fact]

@@ -1,6 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using PokemonTCG.API.Models;
-using PokemonTCG.API.Repositories;
 using PokemonTCG.API.Responses;
 using PokemonTCG.API.Services;
 

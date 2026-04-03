@@ -46,7 +46,10 @@ namespace PokemonTCG.API.Repositories
                 // Agregar las nuevas cartas
                 foreach (var cardDto in deckDetailDTO.Cards)
                 {
-                    int quantity = Math.Clamp(cardDto.Quantity, 1, 4); // Máximo 4 copias
+                    bool isEnergy = (cardDto.Supertype ?? "").Equals("Energy", StringComparison.OrdinalIgnoreCase);
+                    int quantity = isEnergy
+                        ? Math.Max(cardDto.Quantity, 1)
+                        : Math.Clamp(cardDto.Quantity, 1, 4);
 
                     deck.DeckCards.Add(new DeckCard
                     {
@@ -69,6 +72,75 @@ namespace PokemonTCG.API.Repositories
             }
         }
 
+        public async Task<List<DeckDetailDTO>> GetAllDecksAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var decks = await _context.Decks
+                    .Include(d => d.DeckCards)
+                    .ToListAsync(cancellationToken);
+
+                return decks.Select(d => new DeckDetailDTO
+                {
+                    DeckId = d.DeckId,
+                    Name = d.Name,
+                    Description = d.Description,
+                    Cards = d.DeckCards.Select(dc => new DeckCardDTO
+                    {
+                        CardId = dc.CardId,
+                        Quantity = dc.Quantity
+                    }).ToList()
+                }).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all decks.");
+                throw;
+            }
+        }
+
+        public async Task<DeckDetailDTO?> GetDeckByIdAsync(int deckId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var deck = await _context.Decks
+                    .Include(d => d.DeckCards)
+                        .ThenInclude(dc => dc.Card)
+                            .ThenInclude(card => card.CardImage)
+                    .Include(d => d.DeckCards)
+                        .ThenInclude(dc => dc.Card)
+                            .ThenInclude(card => card.Set)
+                    .FirstOrDefaultAsync(d => d.DeckId == deckId, cancellationToken);
+
+                if (deck == null)
+                    return null;
+
+                return new DeckDetailDTO
+                {
+                    DeckId = deck.DeckId,
+                    Name = deck.Name,
+                    Description = deck.Description,
+                    Cards = deck.DeckCards.Select(dc => new DeckCardDTO
+                    {
+                        CardId = dc.CardId,
+                        Quantity = dc.Quantity,
+                        Name = dc.Card?.Name,
+                        ImageLarge = dc.Card?.CardImage?.Large?.ToString(),
+                        Supertype = dc.Card?.SuperType,
+                        Subtype = dc.Card?.SubTypes,
+                        Number = dc.Card?.Number,
+                        SetName = dc.Card?.Set?.Name,
+                        SetId = dc.Card?.SetId,
+                        Ptcgocode = dc.Card?.Set?.PtcgoCode
+                    }).ToList()
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting deck by id.");
+                throw;
+            }
+        }
 
     }
 }

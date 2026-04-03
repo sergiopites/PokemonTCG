@@ -1,8 +1,21 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import "../global.css";
-import { Link } from "react-router-dom";
-import abilityIcon from "../images/abilityIcon.png";
+
+var ICO_WARN = "\u26A0\uFE0F";
+
+function EnergyIcon({ type }) {
+    if (!type) return null;
+    var MAP = {
+        fire: "fire.png", water: "water.png", grass: "grass.png",
+        fairy: "fairy.png", lightning: "lightning.png", psychic: "psychic.png",
+        fighting: "fighting.png", darkness: "darkness.png",
+        steel: "steel.png", metal: "steel.png",
+        dragon: "dragon.png", colorless: "colorless.png",
+    };
+    var file = MAP[type.toLowerCase().trim()];
+    if (!file) return <span style={{ color: "var(--text-dim)" }}>?</span>;
+    return <img src={"/icons/" + file} alt={type} className="energy-icon-v2" />;
+}
 
 export default function CardDetail() {
     const { cardId } = useParams();
@@ -16,369 +29,185 @@ export default function CardDetail() {
         const fetchCard = async () => {
             setLoading(true);
             try {
-                const res = await fetch(`${API_URL}/api/card/cardid/${cardId}`
-                );
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const res = await fetch(API_URL + "/api/card/cardid/" + cardId);
+                if (!res.ok) throw new Error("HTTP " + res.status);
                 const data = await res.json();
-                console.log("👉 Card received:", data);
-
                 setCard(data[0]);
-
             } catch (err) {
                 console.error(err);
-                setError("⚠️ The card could not be loaded.");
+                setError(ICO_WARN + " The card could not be loaded.");
             } finally {
                 setLoading(false);
             }
         };
         fetchCard();
-    }, [cardId]);
+    }, [cardId, API_URL]);
 
     useEffect(() => {
-        // Cargar la configuración al montar el componente
         fetch("/config.json")
-            .then(res => res.json())
-            .then(config => setBackImagePath(config.backImagePath))
-            .catch(() => setBackImagePath("")); // Valor por defecto si falla
+            .then(function(r) { return r.json(); })
+            .then(function(c) { setBackImagePath(c.backImagePath); })
+            .catch(function() { setBackImagePath(""); });
     }, []);
 
-    if (loading) return <div className="loading">⏳ Loading...</div>;
-    if (error) return <div className="error">{error}</div>;
-    if (!card) return null;
-    const handleDownloadPdf = async () => {
-        if (!card || !card.imageLarge) {
-            alert("Card was not found");
-            return;
-        }
-
-        const safeFileName = `${card.cardId}_${card.supertype}_${card.name}`
-            .replace(/\s+/g, "_")
-            .replace(/[^\w\-\.]/g, "");
-
+    var handleDownloadPdf = async function() {
+        if (!card?.imageLarge) { alert("Card was not found"); return; }
+        var safe = (card.cardId + "_" + card.supertype + "_" + card.name).replace(/\s+/g, "_").replace(/[^\w\-\.]/g, "");
         try {
-            const response = await fetch(`${API_URL}/api/printer/generate`, {
+            var r = await fetch(API_URL + "/api/printer/generate", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    imageUrls: [
-                        card.imageLarge,
-                        backImagePath,
-                    ],
-                    fileName: safeFileName,
-                }),
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ imageUrls: [card.imageLarge, backImagePath], fileName: safe }),
             });
-
-            if (!response.ok) {
-                throw new Error(`Error generating PDF: ${response.status} - ${response.statusText}`);
-            }
-
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${safeFileName}.pdf`;
+            if (!r.ok) throw new Error("PDF error");
+            var blob = await r.blob();
+            var a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = safe + ".pdf";
             a.click();
-
-            window.URL.revokeObjectURL(url);
-
-        } catch (error) {
-            console.error("PDF download error:", error);
-            alert("The card could not be downloaded"); //  O usa un mensaje más amigable
+            URL.revokeObjectURL(a.href);
+        } catch (e) {
+            console.error(e);
+            alert("Could not download the card.");
         }
+    };
 
+    if (loading) return (
+        <div className="loading-screen">
+            <div className="pokeball-spinner" />
+            <span className="loading-text">Loading\u2026</span>
+        </div>
+    );
+    if (error) return <div className="page-content-v2"><div className="msg-error">{error}</div></div>;
+    if (!card) return null;
+
+    var parseCost = function(raw) {
+        try {
+            if (typeof raw === "string") return JSON.parse(raw);
+            if (Array.isArray(raw)) return raw;
+        } catch (e) { /* ignore */ }
+        return [];
     };
 
     return (
-        <div className="page-content">
-            <div className="card-detail-container">
-                <div className="card-detail-image">
-                    <table width="100%">
-                        <tbody>
-                            <tr>
-                                <td colSpan={3} width="50%" style={{ textAlign: "center", verticalAlign: "middle" }}>
-                                    {card.imageLarge ? (
-                                        <img
-                                            src={card.imageLarge}
-                                            alt={card.name}
-                                            className="shadow-lg rounded"
-                                            style={{ maxWidth: "100%", height: "auto" }}
-                                        />
-                                    ) : (
-                                        <p>No Image</p>
-                                    )}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td width="50%" style={{ textAlign: "right", verticalAlign: "center" }}>
-                                    {card.setSymbol && (
-                                        <img
-                                            src={card.setSymbol}
-                                            alt={card.setName}
-                                            className="object-contain"
-                                            style={{ width: "35px", height: "auto" }}
-                                        />
-                                    )}
-                                </td>
-                                <td></td>
-                                <td style={{ textAlign: "left", verticalAlign: "center" }}>
-                                    {card.number && (
-                                        <span> {card.number}/{card.setTotal}</span>
-                                    )}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td
-                                    colSpan={3}
-                                    style={{ textAlign: "center", verticalAlign: "middle", paddingTop: "5px" }}
-                                >
-                                    {card.artist && (
-                                        <span> Illustration: {card.artist}</span>
-                                    )}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+        <div className="page-content-v2">
+            <div className="detail-layout">
+                <div className="detail-image-col">
+                    {card.imageLarge
+                        ? <img src={card.imageLarge} alt={card.name} />
+                        : <p style={{ color: "var(--text-dim)" }}>No Image</p>}
+                    <div className="detail-meta">
+                        {card.setSymbol && (
+                            <img src={card.setSymbol} alt="" style={{ width: 28, display: "inline-block", verticalAlign: "middle", marginRight: 6 }} />
+                        )}
+                        {card.number && <span>{card.number}/{card.setTotal}</span>}
+                        {card.artist && <div style={{ marginTop: 4 }}>Illustration: {card.artist}</div>}
+                    </div>
                 </div>
 
-                {/* Info de la carta */}
-                <div className="card-detail-info">
-                    <table width="100%" className="pokemon-tcg-text" >
-                        <tr><td width="80%">
-                            <h2 className="text-2xl font-bold">{card.name}</h2>
-                        </td>
-                            <td width="20%">
-                                {card.setImage && (
-                                    <img
-                                        src={card.setImage}
-                                        alt={card.setName}
-                                        className="object-contain"
-                                        style={{ width: "120px", height: "auto" }}
-                                    />
-                                )}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                {card.type ? (
-                                    <span>
-                                        {card.supertype} · {card.type} · {card.subtype}
-                                    </span>
-                                ) : (
-                                    <span>
-                                        {card.supertype} · {card.subtype}
-                                    </span>
-                                )}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                {card.hp != null && card.hp !== 0 && (
-                                    <>
-                                        <span>HP {card.hp}</span>
-                                    </>
-                                )}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <span> {card.rarity}</span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                {card.evolvesFrom && (
-                                    <>
-                                        <span>Evolves from {card.evolvesFrom}</span>
-                                    </>
-                                )}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                {card.evolvesTo && (
-                                    <>
-                                        <span>Evolves to {card.evolvesTo}</span>
-                                    </>
-                                )}
-                            </td>
-                        </tr>
-                    </table>
-                    <table width="100%" className="section pokemon-tcg-text" >
-                        <tr>
-                            <td width="33%">
-                                <span>Weakness: </span>
-                                {card.weaknessDetails && card.weaknessDetails.length > 0 ? (
-                                    card.weaknessDetails.map((w, index) => (
-                                        <span key={index} className="ml-1">
-                                            <EnergyIcon type={w.type} /> {w.value}
-                                        </span>
-                                    ))
-                                ) : (
-                                    <span className="text-gray-500">--</span>
-                                )}
+                <div className="detail-info">
+                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                        <h1 className="detail-name" style={{ flex: 1 }}>{card.name}</h1>
+                        {card.setImage && <img src={card.setImage} alt={card.setName} style={{ height: 48 }} />}
+                    </div>
 
-                            </td>
-                            <td width="33%">
-                                <span>Resistance: </span>
-                                {card.resistanceDetails && card.resistanceDetails.length > 0 ? (
-                                    card.resistanceDetails.map((res, index) => (
-                                        <span key={index} className="ml-1">
-                                            <EnergyIcon type={res.type} /> {res.value}
-                                        </span>
-                                    ))
-                                ) : (
-                                    <span className="text-gray-500">--</span>
-                                )}
-                            </td>
-                            <td width="33%">
-                                <span>Retreat: </span>
-                                {(() => {
-                                    let costs = [];
-                                    try {
-                                        if (typeof card.retreatCost === "string") {
-                                            costs = JSON.parse(card.retreatCost);
-                                        } else if (Array.isArray(card.retreatCost)) {
-                                            costs = card.retreatCost;
-                                        }
-                                    } catch {
-                                        costs = [];
-                                    }
+                    <div className="detail-badges">
+                        {card.supertype && <span className="badge badge-type">{card.supertype}</span>}
+                        {card.type && <span className="badge badge-type">{card.type}</span>}
+                        {card.subtype && <span className="badge badge-type">{card.subtype}</span>}
+                        {card.hp != null && card.hp !== 0 && <span className="badge badge-hp">HP {card.hp}</span>}
+                        {card.rarity && <span className="badge badge-rarity">{card.rarity}</span>}
+                    </div>
 
-                                    if (!costs || costs.length === 0) {
-                                        return <span className="text-gray-500">--</span>;
-                                    }
+                    {(card.evolvesFrom || card.evolvesTo) && (
+                        <div style={{ color: "var(--text-muted)", fontSize: ".9rem" }}>
+                            {card.evolvesFrom && <div>Evolves from <strong style={{ color: "#fff" }}>{card.evolvesFrom}</strong></div>}
+                            {card.evolvesTo && <div>Evolves to <strong style={{ color: "#fff" }}>{card.evolvesTo}</strong></div>}
+                        </div>
+                    )}
 
-                                    return costs.map((cost, i) => <EnergyIcon key={i} type={cost} />);
+                    <div className="detail-section">
+                        <div className="stat-row">
+                            <div className="stat-item">
+                                <span className="stat-label">Weakness</span>
+                                {card.weaknessDetails?.length > 0
+                                    ? card.weaknessDetails.map(function(w, i) { return <span key={i}><EnergyIcon type={w.type} /> {w.value}</span>; })
+                                    : <span style={{ color: "var(--text-dim)" }}>{"\u2014"}</span>}
+                            </div>
+                            <div className="stat-item">
+                                <span className="stat-label">Resistance</span>
+                                {card.resistanceDetails?.length > 0
+                                    ? card.resistanceDetails.map(function(r, i) { return <span key={i}><EnergyIcon type={r.type} /> {r.value}</span>; })
+                                    : <span style={{ color: "var(--text-dim)" }}>{"\u2014"}</span>}
+                            </div>
+                            <div className="stat-item">
+                                <span className="stat-label">Retreat</span>
+                                {(function() {
+                                    var costs = parseCost(card.retreatCost);
+                                    return costs.length > 0
+                                        ? costs.map(function(c, i) { return <EnergyIcon key={i} type={c} />; })
+                                        : <span style={{ color: "var(--text-dim)" }}>{"\u2014"}</span>;
                                 })()}
-                            </td>
-                        </tr>
-                    </table>
+                            </div>
+                        </div>
+                    </div>
+
                     {card.abilityDetails?.length > 0 && (
-                        <table className="section pokemon-tcg-text" style={{ width: "100%" }}>
-                            <tbody>
-                                {card.abilityDetails.map((ab, i) => (
-                                    <React.Fragment key={i}>
-                                        <tr>
-                                            <td style={{ width: "50px", verticalAlign: "top", textAlign: "left", padding: "4px" }}>
-                                                <img
-                                                    src={abilityIcon}
-                                                    alt="Ability Icon"
-                                                    style={{ width: "70px", height: "19px" }}
-                                                />
-                                            </td>
-                                            <td style={{ verticalAlign: "middle", padding: "4px" }}>
-                                                <span style={{ color: "red" }}>{ab.name}</span>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td colSpan="2" style={{ padding: "6px", verticalAlign: "top" }}>
-                                                {ab.text}
-                                            </td>
-                                        </tr>
-                                    </React.Fragment>
-                                ))}
-                            </tbody>
-                        </table>
+                        <div className="detail-section">
+                            <div className="detail-section-title">Abilities</div>
+                            {card.abilityDetails.map(function(ab, i) {
+                                return (
+                                    <div key={i} className="ability-card">
+                                        <div className="ability-header">
+                                            <span className="ability-tag">Ability</span>
+                                            <span className="ability-name">{ab.name}</span>
+                                        </div>
+                                        <div className="ability-text">{ab.text}</div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     )}
 
                     {card.attackDetails?.length > 0 && (
-                        card.attackDetails.map((atk, i) => (
-                            <div key={i} className="mb-2">
-                                <table width="100%" className="section pokemon-tcg-text">
-                                    <tbody>
-                                        <tr>
-                                            <td width="33%" style={{ textAlign: "center" }}>
-                                                {" "}
-                                                {(() => {
-                                                    let costs = [];
-                                                    try {
-                                                        if (typeof atk.attackCost === "string") {
-                                                            costs = JSON.parse(atk.attackCost);
-                                                        } else if (Array.isArray(atk.attackCost)) {
-                                                            costs = atk.attackCost;
-                                                        }
-                                                    } catch {
-                                                        costs = [];
-                                                    }
-                                                    return costs.length > 0
-                                                        ? costs.map((cost, i) => <EnergyIcon key={i} type={cost} />)
-                                                        : <span className="text-gray-300"></span >;
-                                                })()}
-                                            </td>
-                                            <td width="33%" style={{ textAlign: "center" }}>
-                                                <span>{atk.attackName}</span>
-                                            </td>
-
-                                            <td width="33%" style={{ textAlign: "center" }}>
-                                                <span>{atk.attackDamage ?? "N/A"}</span>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="3">
-                                                {atk.attackDescription}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        ))
+                        <div className="detail-section">
+                            <div className="detail-section-title">Attacks</div>
+                            {card.attackDetails.map(function(atk, i) {
+                                return (
+                                    <React.Fragment key={i}>
+                                        <div className="attack-row">
+                                            <div className="attack-cost">
+                                                {parseCost(atk.attackCost).map(function(c, j) { return <EnergyIcon key={j} type={c} />; })}
+                                            </div>
+                                            <span className="attack-name">{atk.attackName}</span>
+                                            <span className="attack-dmg">{atk.attackDamage ?? ""}</span>
+                                        </div>
+                                        {atk.attackDescription && <div className="attack-desc">{atk.attackDescription}</div>}
+                                    </React.Fragment>
+                                );
+                            })}
+                        </div>
                     )}
 
                     {card.rule && (
-                        <div className="section pokemon-tcg-text">
-                            <span>  {card.rule}</span>
+                        <div className="detail-section">
+                            <div className="detail-section-title">Rules</div>
+                            <p style={{ color: "var(--text-muted)", fontStyle: "italic" }}>{card.rule}</p>
                         </div>
                     )}
-                    <table width="100%" className="section">
-                        <tr>
-                            <td style={{ textAlign: "center", verticalAlign: "middle" }} >
-                                {card.tcgPlayerUrl && (
-                                    <p className="mt-4 text-right">
-                                        <button
-                                            onClick={() => window.open(card.tcgPlayerUrl, '_blank').focus}
-                                            className="inline-flex items-center gap-1 text-gray-800 font-semibold underline hover:text-gray-600 transition-colors duration-200">
-                                            View TCG Player Prices
-                                        </button>
-                                    </p>
-                                )}
-                            </td>
-                            <td style={{ textAlign: "center", verticalAlign: "middle" }} >
-                                <p className="mt-4 text-right">
-                                    <button onClick={handleDownloadPdf} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                                        📥 Export PDF
-                                    </button>
-                                </p>
-                            </td>
-                        </tr>
-                    </table>
+
+                    <div className="detail-section" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                        {card.tcgPlayerUrl && (
+                            <button className="btn btn-outline btn-sm" onClick={function() { window.open(card.tcgPlayerUrl, "_blank"); }}>
+                                {"\uD83D\uDCB0"} TCG Player Prices
+                            </button>
+                        )}
+                        <button className="btn btn-gold btn-sm" onClick={handleDownloadPdf}>
+                            {"\uD83D\uDCE5"} Export PDF
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div >
+        </div>
     );
-}
-
-function EnergyIcon({ type }) {
-    if (!type) return null;
-    const ICON_MAP = {
-        fire: "fire.png",
-        water: "water.png",
-        grass: "grass.png",
-        fairy: "fairy.png",
-        lightning: "lightning.png",
-        psychic: "psychic.png",
-        fighting: "fighting.png",
-        darkness: "darkness.png",
-        steel: "steel.png",
-        metal: "steel.png",
-        dragon: "dragon.png",
-        colorless: "colorless.png",
-    };
-    const key = type.toLowerCase().trim();
-    const filename = ICON_MAP[key];
-    if (!filename) return <span className="text-gray-400">?</span>;
-    const src = `/icons/${filename}`;
-    return <img src={src} alt={type} className="w-6 h-6 inline-block" />;
 }

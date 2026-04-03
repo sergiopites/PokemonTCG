@@ -2,7 +2,6 @@ using PokemonTCG.API.DTOs;
 using PokemonTCG.API.Repositories;
 using PokemonTCG.API.Request;
 using PokemonTCG.API.Responses;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace PokemonTCG.API.Services
@@ -21,16 +20,27 @@ namespace PokemonTCG.API.Services
 
         public async Task<DeckRequest> SaveDeckAsync(DeckRequest deckRequest, CancellationToken cancellationToken = default)
         {
+            var totalCards = deckRequest.Cards.Sum(c => c.Quantity);
+            if (totalCards != 60)
+                throw new InvalidOperationException($"Deck must have exactly 60 cards. Current: {totalCards}");
+
+            foreach (var card in deckRequest.Cards)
+            {
+                bool isEnergy = (card.Supertype ?? "").Equals("Energy", StringComparison.OrdinalIgnoreCase);
+                if (!isEnergy && card.Quantity > 4)
+                    throw new InvalidOperationException($"Card '{card.Name ?? card.CardId}' exceeds the 4-copy limit ({card.Quantity}).");
+            }
+
             var deckDTO = new DeckDetailDTO
             {
-
                 DeckId = deckRequest.DeckId,
                 Name = deckRequest.Name,
                 Description = deckRequest.Description,
                 Cards = deckRequest.Cards.Select(c => new DeckCardDTO
                 {
                     CardId = c.CardId,
-                    Quantity = c.Quantity
+                    Quantity = c.Quantity,
+                    Supertype = c.Supertype
                 }).ToList()
             };
             deckDTO = await _deckRepository.SaveDeckAsync(deckDTO, cancellationToken);
@@ -435,6 +445,49 @@ namespace PokemonTCG.API.Services
                 }).ToList()
             };
 
+        }
+
+        public async Task<List<DeckRequest>> GetAllDecksAsync(CancellationToken cancellationToken = default)
+        {
+            var decks = await _deckRepository.GetAllDecksAsync(cancellationToken);
+
+            return decks.Select(d => new DeckRequest
+            {
+                DeckId = d.DeckId,
+                Name = d.Name,
+                Description = d.Description,
+                Cards = d.Cards.Select(dc => new CardQuantityRequest
+                {
+                    CardId = dc.CardId,
+                    Quantity = dc.Quantity
+                }).ToList()
+            }).ToList();
+        }
+
+        public async Task<DeckRequest?> GetDeckByIdAsync(int deckId, CancellationToken cancellationToken = default)
+        {
+            var deck = await _deckRepository.GetDeckByIdAsync(deckId, cancellationToken);
+
+            if (deck == null)
+                return null;
+
+            return new DeckRequest
+            {
+                DeckId = deck.DeckId,
+                Name = deck.Name,
+                Description = deck.Description,
+                Cards = deck.Cards.Select(dc => new CardQuantityRequest
+                {
+                    CardId = dc.CardId,
+                    Quantity = dc.Quantity,
+                    Name = dc.Name,
+                    ImageLarge = dc.ImageLarge,
+                    Supertype = dc.Supertype,
+                    Subtype = dc.Subtype,
+                    Number = dc.Number,
+                    Ptcgocode = dc.Ptcgocode
+                }).ToList()
+            };
         }
 
     }

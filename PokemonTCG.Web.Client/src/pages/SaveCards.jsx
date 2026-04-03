@@ -1,4 +1,8 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
+
+var ICO_OK   = "\u2705";
+var ICO_FAIL = "\u274C";
+var ICO_WARN = "\u26A0\uFE0F";
 
 export default function SaveCards() {
     const [loading, setLoading] = useState(false);
@@ -8,71 +12,40 @@ export default function SaveCards() {
     const handleSave = async () => {
         setLoading(true);
         setMessage("");
-
         try {
-            const url = `${API_URL}/api/card/addpokemoncards`;
-            const response = await fetch(url, {
+            const r = await fetch(API_URL + "/api/card/addpokemoncards", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                }
+                headers: { "Content-Type": "application/json" },
             });
-
-            console.log("Response status:", response.status);
-
-            if (response.ok) {
-                setMessage("✅ Pokemon cards saved successfully!");
-            } else {
-                const errorText = await response.text();
-                setMessage(`❌ Error: ${errorText}`);
-            }
-        } catch (error) {
-            console.error(error);
-            setMessage("⚠️ Request failed, check if the API is running.");
+            if (r.ok) setMessage(ICO_OK + " Pokemon cards saved successfully!");
+            else setMessage(ICO_FAIL + " Error: " + (await r.text()));
+        } catch (e) {
+            console.error(e);
+            setMessage(ICO_WARN + " Request failed, check if the API is running.");
         } finally {
             setLoading(false);
         }
     };
 
-    return (
-        <div className="page-content">
-            <table border="0" className="tcg-table pokemon-tcg-text" width="100%">
-                <tbody>
-                    <tr>
-                        <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-                            <h2>Cards Management</h2>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Sync your database with the Pokémon TCG world!
-                            When you press the button, the latest cards will be fetched and saved from the official Pokémon TCG API.
-                        </td></tr>
-                    <tr>
-                        <td>
-                            <button onClick={handleSave} disabled={loading}>
-                                {loading ? "Updating..." : "Save Cards"}
-                            </button>
+    const msgClass = message.indexOf(ICO_OK) >= 0 ? "msg-success" : message.indexOf(ICO_FAIL) >= 0 ? "msg-error" : "msg-warning";
 
-                            {message && (
-                                <p
-                                    className={
-                                        message.includes("✅")
-                                            ? "success"
-                                            : message.includes("❌")
-                                                ? "error"
-                                                : "warning"
-                                    }
-                                >
-                                    {message}
-                                </p>
-                            )}
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+    return (
+        <div className="page-content-v2">
+            <div className="admin-panel">
+                <h2>Cards Management</h2>
+                <p>
+                    Sync your database with the Pok\u00e9mon TCG world!
+                    Press the button to fetch and save the latest cards from the official API.
+                </p>
+                <button className="btn btn-gold" onClick={handleSave} disabled={loading}>
+                    {loading ? "Syncing\u2026" : "\u26A1 Sync Cards"}
+                </button>
+                {message && (
+                    <p className={msgClass} style={{ marginTop: 16 }}>
+                        {message}
+                    </p>
+                )}
+            </div>
         </div>
     );
 }
-
-
-

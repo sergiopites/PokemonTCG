@@ -89,5 +89,127 @@ namespace PokemonTCG.Test.Controllers
             var badRequest = Assert.IsType<BadRequestObjectResult>(result);
             Assert.Contains("No cards", badRequest.Value!.ToString());
         }
+
+        // GetAllDecks
+
+        [Fact]
+        public async Task GetAllDecks_ReturnsOk_WhenSuccessful()
+        {
+            var decks = new List<DeckRequest>
+            {
+                new() { DeckId = 1, Name = "Deck 1", Description = "D1", Cards = new List<CardQuantityRequest>() },
+                new() { DeckId = 2, Name = "Deck 2", Description = "D2", Cards = new List<CardQuantityRequest>() }
+            };
+            _mockDeckService.Setup(s => s.GetAllDecksAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(decks);
+
+            var result = await _controller.GetAllDecks(CancellationToken.None);
+
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var returned = Assert.IsType<List<DeckRequest>>(okResult.Value);
+            Assert.Equal(2, returned.Count);
+        }
+
+        [Fact]
+        public async Task GetAllDecks_ReturnsBadRequest_WhenExceptionThrown()
+        {
+            _mockDeckService.Setup(s => s.GetAllDecksAsync(It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("DB error"));
+
+            var result = await _controller.GetAllDecks(CancellationToken.None);
+
+            var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+            Assert.Equal("DB error", badRequest.Value);
+        }
+
+        [Fact]
+        public async Task GetAllDecks_ReturnsOk_WhenEmpty()
+        {
+            _mockDeckService.Setup(s => s.GetAllDecksAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<DeckRequest>());
+
+            var result = await _controller.GetAllDecks(CancellationToken.None);
+
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var returned = Assert.IsType<List<DeckRequest>>(okResult.Value);
+            Assert.Empty(returned);
+        }
+
+        // GetDeckById
+
+        [Fact]
+        public async Task GetDeckById_ReturnsOk_WhenFound()
+        {
+            var deck = new DeckRequest
+            {
+                DeckId = 1, Name = "My Deck", Description = "Desc",
+                Cards = new List<CardQuantityRequest> { new() { CardId = "xy1-1", Quantity = 4 } }
+            };
+            _mockDeckService.Setup(s => s.GetDeckByIdAsync(1, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(deck);
+
+            var result = await _controller.GetDeckById(1, CancellationToken.None);
+
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var returned = Assert.IsType<DeckRequest>(okResult.Value);
+            Assert.Equal(1, returned.DeckId);
+        }
+
+        [Fact]
+        public async Task GetDeckById_ReturnsNotFound_WhenNull()
+        {
+            _mockDeckService.Setup(s => s.GetDeckByIdAsync(999, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((DeckRequest?)null);
+
+            var result = await _controller.GetDeckById(999, CancellationToken.None);
+
+            Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Fact]
+        public async Task GetDeckById_ReturnsBadRequest_WhenExceptionThrown()
+        {
+            _mockDeckService.Setup(s => s.GetDeckByIdAsync(1, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("DB error"));
+
+            var result = await _controller.GetDeckById(1, CancellationToken.None);
+
+            var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+            Assert.Equal("DB error", badRequest.Value);
+        }
+
+        // UpdateDeck
+
+        [Fact]
+        public async Task UpdateDeck_ReturnsOk_WhenSuccessful()
+        {
+            var request = new DeckRequest
+            {
+                DeckId = 1, Name = "Updated", Description = "Upd",
+                Cards = new List<CardQuantityRequest> { new() { CardId = "xy1-1", Quantity = 4 } }
+            };
+            _mockDeckService.Setup(s => s.SaveDeckAsync(It.IsAny<DeckRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(request);
+
+            var result = await _controller.UpdateDeck(request, CancellationToken.None);
+
+            Assert.IsType<OkResult>(result);
+        }
+
+        [Fact]
+        public async Task UpdateDeck_ReturnsBadRequest_WhenExceptionThrown()
+        {
+            var request = new DeckRequest
+            {
+                DeckId = 1, Name = "Fail", Cards = new List<CardQuantityRequest>()
+            };
+            _mockDeckService.Setup(s => s.SaveDeckAsync(It.IsAny<DeckRequest>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("Update failed"));
+
+            var result = await _controller.UpdateDeck(request, CancellationToken.None);
+
+            var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+            Assert.Equal("Update failed", badRequest.Value);
+        }
     }
 }

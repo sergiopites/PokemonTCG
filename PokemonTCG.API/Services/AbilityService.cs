@@ -12,23 +12,6 @@ namespace PokemonTCG.API.Services
             _abilityRepository = abilityRepository;
             _logger = logger;
         }
-        public void SaveAbilityAsync(List<Models.Ability> ability, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                if (ability == null || ability.Count == 0)
-                {
-                    _logger.LogWarning("No abilities to save.");
-                    return;
-                }
-
-                _abilityRepository.SaveAbilityAsync(ability, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error saving ability: {ex.Message}");
-            }
-        }
 
         public async Task<List<Models.Ability>> GetAbilitiesByCardIdAsync(string cardId)
         {

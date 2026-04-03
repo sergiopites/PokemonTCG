@@ -13,34 +13,6 @@ namespace PokemonTCG.Test.Services
 
         private AttackService CreateService() => new(_repo.Object, _logger.Object);
 
-        // ?? SaveAttackAsync ??????????????????????????????????????????????
-
-        [Fact]
-        public void SaveAttackAsync_WithAttacks_CallsRepository()
-        {
-            var attacks = new List<Attack> { new() { AttackId = 1, Name = "Thunderbolt" } };
-
-            CreateService().SaveAttackAsync(attacks);
-
-            _repo.Verify(r => r.SaveAttackAsync(attacks, It.IsAny<CancellationToken>()), Times.Once);
-        }
-
-        [Fact]
-        public void SaveAttackAsync_NullList_DoesNotCallRepository()
-        {
-            CreateService().SaveAttackAsync(null!);
-
-            _repo.Verify(r => r.SaveAttackAsync(It.IsAny<List<Attack>>(), It.IsAny<CancellationToken>()), Times.Never);
-        }
-
-        [Fact]
-        public void SaveAttackAsync_EmptyList_DoesNotCallRepository()
-        {
-            CreateService().SaveAttackAsync(new List<Attack>());
-
-            _repo.Verify(r => r.SaveAttackAsync(It.IsAny<List<Attack>>(), It.IsAny<CancellationToken>()), Times.Never);
-        }
-
         // ?? GetAttacksByCardIdAsync ???????????????????????????????????????
 
         [Fact]

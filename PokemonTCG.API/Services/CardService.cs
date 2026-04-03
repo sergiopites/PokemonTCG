@@ -167,176 +167,19 @@ namespace PokemonTCG.API.Services
                 foreach (var set in setList)
                 {
                     var externalCards = await GetPokemonCardBySetIdAsync(set.SetId);
-                    if (externalCards == null || !externalCards.Any())
+                    if (externalCards is not { Count: > 0 })
                         continue;
 
                     foreach (var c in externalCards)
                     {
                         try
-                        {                            
-                            var cardImage = new CardImage
-                            {
-                                Small = c.Images?.Small,
-                                Large = c.Images?.Large
-                            };
-                            cardImage = await _cardImageRepository.SaveImageCardAsync(cardImage, cancellationToken);
+                        {
+                            var cardImage = await _cardImageRepository.SaveImageCardAsync(
+                                MapCardImage(c), cancellationToken);
 
-                            var cardLegality = new Legality
-                            {
-                                Expanded = c.Legalities?.Expanded,
-                                Standard = c.Legalities?.Standard,
-                                Unlimited = c.Legalities?.Unlimited
-                            };
-                            cardLegality = await _legalityRepository.SaveLegalityAsync(cardLegality, cancellationToken);
+                            var cardLegality = await _legalityRepository.SaveLegalityAsync(
+                                MapLegality(c), cancellationToken);
 
-                            var cardAbilities = c.Abilities?.Select(a => new Ability
-                            {
-                                Name = a.Name,
-                                Text = a.Text,
-                                Type = a.Type
-                            }).ToList() ?? new List<Ability>();
-
-                            var cardAttacks = c.Attacks?.Select(at => new Attack
-                            {
-                                Name = at.Name,
-                                CostJson = at.Cost != null ? JsonSerializer.Serialize(at.Cost, new JsonSerializerOptions { WriteIndented = true }) : null,
-                                ConvertedEnergyCost = at.ConvertedEnergyCost.ToString(),
-                                Damage = at.Damage,
-                                Text = at.Text
-                            }).ToList() ?? new List<Attack>();
-
-                            var cardResistances = c.Resistances?.Select(r => new Resistance
-                            {
-                                Type = r.Type,
-                                Value = r.Value,
-                            }).ToList() ?? new List<Resistance>();
-                                                        
-                            var cardWeaknesses = c.Weaknesses?.Select(w => new Weakness
-                            {
-                                Type = w.Type,
-                                Value = w.Value
-                            }).ToList() ?? new List<Weakness>();
-                            
-                            CardMarket? cardMarket = null;
-
-                            if (c.Cardmarket != null)
-                            {
-                                cardMarket = new CardMarket
-                                {
-                                    Url = c.Cardmarket.Url != null ? new Uri(c.Cardmarket.Url.ToString()) : null,
-                                    UpdatedAt = c.Cardmarket.UpdatedAt,
-                                    CardMarketPrices = new List<CardMarketPrice>()
-                                };
-
-                                if (c.Cardmarket.Prices != null) // ✅ null check
-                                {
-                                    cardMarket.CardMarketPrices.Add(new CardMarketPrice
-                                    {
-                                        AverageSellPrice = c.Cardmarket.Prices.AverageSellPrice,
-                                        LowPrice = c.Cardmarket.Prices.LowPrice,
-                                        TrendPrice = c.Cardmarket.Prices.TrendPrice,
-                                        ReverseHoloLow = c.Cardmarket.Prices.ReverseHoloLow,
-                                        ReverseHoloTrend = c.Cardmarket.Prices.ReverseHoloTrend,
-                                        LowPriceExPlus = c.Cardmarket.Prices.LowPriceExPlus,
-                                        AverageDay = c.Cardmarket.Prices.AverageDay,
-                                        AverageWeek = c.Cardmarket.Prices.AverageWeek,
-                                        AverageMonth = c.Cardmarket.Prices.AverageMonth,
-                                        AverageDayReverseHolo = c.Cardmarket.Prices.AverageDayReverseHolo,
-                                        AverageWeekReverseHolo = c.Cardmarket.Prices.AverageWeekReverseHolo,
-                                        AverageMonthReverseHolo = c.Cardmarket.Prices.AverageMonthReverseHolo
-                                    });
-                                }
-                            }
-                                                        
-                            Models.TCGPlayer? cardTcgPlayer = null;
-                            if (c.Tcgplayer != null)
-                            {
-                                var prices = new List<Models.Price>();
-                                if (c.Tcgplayer?.Prices?.Holofoil != null)
-                                    prices.Add(new Models.Price
-                                    {
-                                        Type = PriceType.Holofoil,
-                                        Low = c.Tcgplayer.Prices.Holofoil.Low,
-                                        Mid = c.Tcgplayer.Prices.Holofoil.Mid,
-                                        High = c.Tcgplayer.Prices.Holofoil.High,
-                                        Market = c.Tcgplayer.Prices.Holofoil.Market,
-                                        DirectLow = c.Tcgplayer.Prices.Holofoil.DirectLow
-                                    });
-                                if (c.Tcgplayer?.Prices?.ReverseHolofoil != null)
-                                    prices.Add(new Models.Price
-                                    {
-                                        Type = PriceType.ReverseHolofoil,
-                                        Low = c.Tcgplayer.Prices.ReverseHolofoil.Low,
-                                        Mid = c.Tcgplayer.Prices.ReverseHolofoil.Mid,
-                                        High = c.Tcgplayer.Prices.ReverseHolofoil.High,
-                                        Market = c.Tcgplayer.Prices.ReverseHolofoil.Market,
-                                        DirectLow = c.Tcgplayer.Prices.ReverseHolofoil.DirectLow
-                                    });
-
-                                if (c.Tcgplayer?.Prices?.Normal != null)
-                                    prices.Add(new Models.Price
-                                    {
-                                        Type = PriceType.Normal,
-                                        Low = c.Tcgplayer.Prices.Normal.Low,
-                                        Mid = c.Tcgplayer.Prices.Normal.Mid,
-                                        High = c.Tcgplayer.Prices.Normal.High,
-                                        Market = c.Tcgplayer.Prices.Normal.Market,
-                                        DirectLow = c.Tcgplayer.Prices.Normal.DirectLow
-                                    });
-                                if (c.Tcgplayer?.Prices?.The1StEdition != null)
-                                    prices.Add(new Models.Price
-                                    {
-                                        Type = PriceType.FirstEdition,
-                                        Low = c.Tcgplayer.Prices.The1StEdition.Low,
-                                        Mid = c.Tcgplayer.Prices.The1StEdition.Mid,
-                                        High = c.Tcgplayer.Prices.The1StEdition.High,
-                                        Market = c.Tcgplayer.Prices.The1StEdition.Market,
-                                        DirectLow = c.Tcgplayer.Prices.The1StEdition.DirectLow
-                                    });
-                                if (c.Tcgplayer?.Prices?.The1StEditionHolofoil != null)
-                                    prices.Add(new Models.Price
-                                    {
-                                        Type = PriceType.FirstEditionHolofoil,
-                                        Low = c.Tcgplayer.Prices.The1StEditionHolofoil.Low,
-                                        Mid = c.Tcgplayer.Prices.The1StEditionHolofoil.Mid,
-                                        High = c.Tcgplayer.Prices.The1StEditionHolofoil.High,
-                                        Market = c.Tcgplayer.Prices.The1StEditionHolofoil.Market,
-                                        DirectLow = c.Tcgplayer.Prices.The1StEditionHolofoil.DirectLow
-                                    });
-                                if (c.Tcgplayer?.Prices?.Unlimited != null)
-                                    prices.Add(new Models.Price
-                                    {
-                                        Type = PriceType.Unlimited,
-                                        Low = c.Tcgplayer.Prices.Unlimited.Low,
-                                        Mid = c.Tcgplayer.Prices.Unlimited.Mid,
-                                        High = c.Tcgplayer.Prices.Unlimited.High,
-                                        Market = c.Tcgplayer.Prices.Unlimited.Market,
-                                        DirectLow = c.Tcgplayer.Prices.Unlimited.DirectLow
-                                    });
-                                if (c.Tcgplayer?.Prices?.UnlimitedHolofoil != null)
-                                    prices.Add(new Models.Price
-                                    {
-                                        Type = PriceType.Unlimited,
-                                        Low = c.Tcgplayer.Prices.UnlimitedHolofoil.Low,
-                                        Mid = c.Tcgplayer.Prices.UnlimitedHolofoil.Mid,
-                                        High = c.Tcgplayer.Prices.UnlimitedHolofoil.High,
-                                        Market = c.Tcgplayer.Prices.UnlimitedHolofoil.Market,
-                                        DirectLow = c.Tcgplayer.Prices.UnlimitedHolofoil.DirectLow
-                                    });
-                                prices = prices.Where(p => p != null).ToList();
-
-                                cardTcgPlayer = new TCGPlayer
-                                {
-                                    Url = c.Tcgplayer.Url != null ? new Uri(c.Tcgplayer.Url.ToString()) : null,
-                                    UpdatedAt = c.Tcgplayer.UpdatedAt,
-                                    TCGPlayerPrices = new List<TCGPlayerPrice>
-                            {
-                                new TCGPlayerPrice { Prices = prices }
-                            }
-                                };
-                            }
-
-                            // ---------------- Carta principal ----------------
                             var card = new Models.Card
                             {
                                 CardId = c.Id,
@@ -348,23 +191,23 @@ namespace PokemonTCG.API.Services
                                 Types = c.Types?.FirstOrDefault(),
                                 EvolvesFrom = c.EvolvesFrom,
                                 EvolvesTo = c.EvolvesTo?.FirstOrDefault(),
-                                Abilities = cardAbilities,
-                                Attacks = cardAttacks,
-                                RetreatCost = c.RetreatCost != null ? JsonSerializer.Serialize(c.RetreatCost, new JsonSerializerOptions { WriteIndented = true }) : null,
+                                Abilities = MapAbilities(c),
+                                Attacks = MapAttacks(c),
+                                Resistances = MapResistances(c),
+                                Weaknesses = MapWeaknesses(c),
+                                RetreatCost = SerializeJson(c.RetreatCost),
                                 ConvertedRetreatCost = c.ConvertedRetreatCost,
                                 SetId = c.Set?.Id,
                                 Number = c.Number,
                                 Artist = c.Artist,
                                 Rarity = c.Rarity,
-                                NationalPokedexNumbers = c.NationalPokedexNumbers != null ? JsonSerializer.Serialize(c.NationalPokedexNumbers, new JsonSerializerOptions { WriteIndented = true }) : null,
+                                NationalPokedexNumbers = SerializeJson(c.NationalPokedexNumbers),
                                 LegalitiesId = cardLegality.LegalityId,
                                 CardImageId = cardImage.CardImageId,
-                                CardMarket = cardMarket,
-                                Tcgplayer = cardTcgPlayer,
+                                CardMarket = MapCardMarket(c),
+                                Tcgplayer = MapTcgPlayer(c),
                                 FlavorText = c.FlavorText,
                                 SubTypes = c.Subtypes?.FirstOrDefault(),
-                                Weaknesses = cardWeaknesses,
-                                Resistances = cardResistances,
                                 Rules = c.Rules?.FirstOrDefault(),
                                 RegulationMark = c.RegulationMark
                             };
@@ -373,22 +216,147 @@ namespace PokemonTCG.API.Services
                         }
                         catch (Exception cardEx)
                         {
-                            _logger.LogError($"Error saving card {c.Id}: {cardEx.Message}");
+                            _logger.LogError("Error saving card {CardId}: {Message}", c.Id, cardEx.Message);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error saving cards: {ex.Message}");
+                _logger.LogError("Error saving cards: {Message}", ex.Message);
             }
         }
+
+        private static CardImage MapCardImage(PokemonCard c) => new()
+        {
+            Small = c.Images?.Small,
+            Large = c.Images?.Large
+        };
+
+        private static Legality MapLegality(PokemonCard c) => new()
+        {
+            Expanded = c.Legalities?.Expanded,
+            Standard = c.Legalities?.Standard,
+            Unlimited = c.Legalities?.Unlimited
+        };
+
+        private static List<Ability> MapAbilities(PokemonCard c) =>
+            c.Abilities?.Select(a => new Ability
+            {
+                Name = a.Name,
+                Text = a.Text,
+                Type = a.Type
+            }).ToList() ?? [];
+
+        private static List<Attack> MapAttacks(PokemonCard c) =>
+            c.Attacks?.Select(at => new Attack
+            {
+                Name = at.Name,
+                CostJson = SerializeJson(at.Cost),
+                ConvertedEnergyCost = at.ConvertedEnergyCost.ToString(),
+                Damage = at.Damage,
+                Text = at.Text
+            }).ToList() ?? [];
+
+        private static List<Resistance> MapResistances(PokemonCard c) =>
+            c.Resistances?.Select(r => new Resistance
+            {
+                Type = r.Type,
+                Value = r.Value
+            }).ToList() ?? [];
+
+        private static List<Weakness> MapWeaknesses(PokemonCard c) =>
+            c.Weaknesses?.Select(w => new Weakness
+            {
+                Type = w.Type,
+                Value = w.Value
+            }).ToList() ?? [];
+
+        private static CardMarket? MapCardMarket(PokemonCard c)
+        {
+            if (c.Cardmarket is null)
+                return null;
+
+            var cardMarket = new CardMarket
+            {
+                Url = c.Cardmarket.Url != null ? new Uri(c.Cardmarket.Url.ToString()) : null,
+                UpdatedAt = c.Cardmarket.UpdatedAt,
+                CardMarketPrices = new List<CardMarketPrice>()
+            };
+
+            if (c.Cardmarket.Prices is { } p)
+            {
+                cardMarket.CardMarketPrices.Add(new CardMarketPrice
+                {
+                    AverageSellPrice = p.AverageSellPrice,
+                    LowPrice = p.LowPrice,
+                    TrendPrice = p.TrendPrice,
+                    ReverseHoloLow = p.ReverseHoloLow,
+                    ReverseHoloTrend = p.ReverseHoloTrend,
+                    LowPriceExPlus = p.LowPriceExPlus,
+                    AverageDay = p.AverageDay,
+                    AverageWeek = p.AverageWeek,
+                    AverageMonth = p.AverageMonth,
+                    AverageDayReverseHolo = p.AverageDayReverseHolo,
+                    AverageWeekReverseHolo = p.AverageWeekReverseHolo,
+                    AverageMonthReverseHolo = p.AverageMonthReverseHolo
+                });
+            }
+
+            return cardMarket;
+        }
+
+        private static Models.TCGPlayer? MapTcgPlayer(PokemonCard c)
+        {
+            if (c.Tcgplayer is null)
+                return null;
+
+            var prices = new List<Models.Price>();
+
+            AddTcgPrice(prices, PriceType.Holofoil, c.Tcgplayer.Prices?.Holofoil);
+            AddTcgPrice(prices, PriceType.ReverseHolofoil, c.Tcgplayer.Prices?.ReverseHolofoil);
+            AddTcgPrice(prices, PriceType.Normal, c.Tcgplayer.Prices?.Normal);
+            AddTcgPrice(prices, PriceType.FirstEdition, c.Tcgplayer.Prices?.The1StEdition);
+            AddTcgPrice(prices, PriceType.FirstEditionHolofoil, c.Tcgplayer.Prices?.The1StEditionHolofoil);
+            AddTcgPrice(prices, PriceType.Unlimited, c.Tcgplayer.Prices?.Unlimited);
+            AddTcgPrice(prices, PriceType.Unlimited, c.Tcgplayer.Prices?.UnlimitedHolofoil);
+
+            return new Models.TCGPlayer
+            {
+                Url = c.Tcgplayer.Url != null ? new Uri(c.Tcgplayer.Url.ToString()) : null,
+                UpdatedAt = c.Tcgplayer.UpdatedAt,
+                TCGPlayerPrices = [new TCGPlayerPrice { Prices = prices }]
+            };
+        }
+
+        private static void AddTcgPrice(List<Models.Price> prices, PriceType type, dynamic? source)
+        {
+            if (source is null)
+                return;
+
+            prices.Add(new Models.Price
+            {
+                Type = type,
+                Low = source.Low,
+                Mid = source.Mid,
+                High = source.High,
+                Market = source.Market,
+                DirectLow = source.DirectLow
+            });
+        }
+
+        private static string? SerializeJson<T>(T? value) where T : class =>
+            value is not null
+                ? JsonSerializer.Serialize(value, new JsonSerializerOptions { WriteIndented = true })
+                : null;
+
         public async Task<PagedResult<CardDetailDTO>> SearchCardsAsync(string? name = null, string? setId = null, string? ptcgoCode = null,
                                                                        string? supertype = null, string? subtype = null, string? type = null,
                                                                        string? rarity = null, int page = 1, int pageSize = 55, string? number = null)
         {
             return await _cardRepository.SearchCardsAsync(name, setId, ptcgoCode, supertype, subtype, type, rarity, page, pageSize, number);
         }
+
         public async Task<CardDetailResponse> GetCardsByRarityAsync(string rarity, int page = 1, int pageSize = 55)
         {
             var result = await SearchCardsAsync(rarity: rarity, page: page, pageSize: pageSize);
@@ -401,6 +369,7 @@ namespace PokemonTCG.API.Services
                 Cards = result.Items
             };
         }
+
         public async Task<CardDetailResponse> GetCardsByTypeAsync(string type, int page = 1, int pageSize = 55)
         {
             var result = await SearchCardsAsync(type: type, page: page, pageSize: pageSize);
@@ -413,6 +382,7 @@ namespace PokemonTCG.API.Services
                 Cards = result.Items
             };
         }
+
         public async Task<CardDetailResponse> GetCardsBySupertypeAsync(string supertype, int page = 1, int pageSize = 55)
         {
             var result = await SearchCardsAsync(supertype: supertype, page: page, pageSize: pageSize);
@@ -425,6 +395,7 @@ namespace PokemonTCG.API.Services
                 Cards = result.Items
             };
         }
+
         public async Task<CardDetailResponse> GetCardsBySubtypeAsync(string subtype, int page = 1, int pageSize = 55)
         {
             var result = await SearchCardsAsync(subtype: subtype, page: page, pageSize: pageSize);
@@ -437,6 +408,7 @@ namespace PokemonTCG.API.Services
                 Cards = result.Items
             };
         }
+
         public async Task<CardDetailResponse> GetCardsBySetAsync(string setId, int page = 1, int pageSize = 55)
         {
             var result = await SearchCardsAsync(setId: setId, page: page, pageSize: pageSize);
@@ -468,16 +440,19 @@ namespace PokemonTCG.API.Services
             var distinctTypes = await _cardRepository.GetDistinctTypesAsync();
             return distinctTypes.Select(type => new CardDetailResponse { Type = type }).ToList();
         }
+
         public async Task<List<CardDetailResponse>> GetDistinctRaritiesAsync()
         {
             var distinctRarities = await _cardRepository.GetDistinctRaritiesAsync();
             return distinctRarities.Select(rarity => new CardDetailResponse { Rarity = rarity }).ToList();
         }
+
         public async Task<List<CardDetailResponse>> GetDistinctSubtypesAsync()
         {
             var distinctSubtypes = await _cardRepository.GetDistinctSubtypesAsync();
             return distinctSubtypes.Select(subtypes => new CardDetailResponse { Subtype = subtypes }).ToList();
         }
+
         public async Task<List<CardDetailResponse>> GetDistinctSupertypesAsync()
         {
             var distinctSupertypes = await _cardRepository.GetDistinctSupertypesAsync();
@@ -488,13 +463,12 @@ namespace PokemonTCG.API.Services
         {
             var apiKey = "9e6b5ba1-0b91-46de-89fc-740efcccfb40";
 
-            // Definimos la política de reintento
             var retryPolicy = Policy
-                .Handle<HttpRequestException>() // por si hay problemas de red
-                .OrResult<ApiResourceList<PokemonCard>>(r => r == null) // si la respuesta es nula                
+                .Handle<HttpRequestException>()
+                .OrResult<ApiResourceList<PokemonCard>>(r => r == null)
                 .WaitAndRetryAsync(
                     retryCount: 15,
-                    sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)), // 2s, 4s, 8s
+                    sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
                     onRetry: (outcome, timespan, retryAttempt, context) =>
                     {
                         Console.WriteLine($"⚠️ Reintentando (intento {retryAttempt}) después de {timespan.TotalSeconds}s...");
@@ -505,11 +479,9 @@ namespace PokemonTCG.API.Services
             var filter = PokemonFilterBuilder.CreatePokemonFilter()
                 .AddSetId(idPokemonSet);
 
-            // Ejecutamos la llamada con la política de retry
             var cards = await retryPolicy.ExecuteAsync(async () =>
             {
                 var result = await client.GetApiResourceAsync<PokemonCard>(filter);
-
                 return result;
             });
 

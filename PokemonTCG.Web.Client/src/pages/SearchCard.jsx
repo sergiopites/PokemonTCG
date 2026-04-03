@@ -1,6 +1,5 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import "../global.css";
 
 export default function SearchCard() {
     const API_URL = import.meta.env.VITE_API_URL || "";
@@ -15,394 +14,136 @@ export default function SearchCard() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [search, setSearch] = useState("");
-    const [number, setNumber] = useState(""); // 🔹 NUEVO estado para el filtro Number
+    const [number, setNumber] = useState("");
     const [setId, setSetId] = useState("");
     const [supertype, setSuperType] = useState("");
     const [type, setType] = useState("");
     const [subtype, setSubType] = useState("");
     const [rarity, setRarity] = useState("");
-    const [error, setError] = useState(null);
 
-    const normalizeToStrings = (arr, keysToCheck = []) => {
+    var norm = function(arr, keys) {
+        keys = keys || [];
         if (!Array.isArray(arr)) return [];
-        return arr.map((item) => {
+        return arr.map(function(item) {
             if (item == null) return "";
             if (typeof item === "string") return item;
-            for (const k of keysToCheck) {
-                if (item[k] && typeof item[k] === "string") return item[k];
-            }
-            const primitive = Object.values(item).find(
-                (v) => typeof v === "string" || typeof v === "number"
-            );
-            if (primitive != null) return String(primitive);
+            for (var ki = 0; ki < keys.length; ki++) { var k = keys[ki]; if (item[k] && typeof item[k] === "string") return item[k]; }
+            var vals = Object.values(item);
+            for (var vi = 0; vi < vals.length; vi++) { var v = vals[vi]; if (typeof v === "string" || typeof v === "number") return String(v); }
             return JSON.stringify(item);
         });
     };
 
-    // Cargar filtros
-    useEffect(() => {
-        const fetchFilters = async () => {
-            try {
-                const res = await fetch(`${API_URL}/api/card/filters`);
-                if (!res.ok) throw new Error("Error to get filters");
-                const data = await res.json();
-
-                setAvailableRarities(
-                    normalizeToStrings(data?.rarities ?? data?.Rarities ?? [], ["rarity", "name", "value"])
-                );
-                setAvailableSubTypes(
-                    normalizeToStrings(data?.subtypes ?? data?.SubTypes ?? [], ["subtype", "name", "value"])
-                );
-                setAvailableTypes(
-                    normalizeToStrings(data?.types ?? data?.Types ?? [], ["type", "name", "value"])
-                );
-                setAvailableSuperTypes(
-                    normalizeToStrings(
-                        data?.supertypes ?? data?.superTypes ?? data?.SuperTypes ?? [],
-                        ["supertype", "name", "value"]
-                    )
-                );
-            } catch (err) {
-                console.error("Error loading filters:", err);
-            }
-        };
-
-        fetchFilters();
+    useEffect(function() {
+        fetch(API_URL + "/api/card/filters")
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                setAvailableRarities(norm(d?.rarities ?? d?.Rarities ?? [], ["rarity", "name", "value"]));
+                setAvailableSubTypes(norm(d?.subtypes ?? d?.SubTypes ?? [], ["subtype", "name", "value"]));
+                setAvailableTypes(norm(d?.types ?? d?.Types ?? [], ["type", "name", "value"]));
+                setAvailableSuperTypes(norm(d?.supertypes ?? d?.superTypes ?? d?.SuperTypes ?? [], ["supertype", "name", "value"]));
+            })
+            .catch(function(e) { console.error("Error loading filters:", e); });
     }, [API_URL]);
 
-    // Cargar sets
-    useEffect(() => {
-        const fetchSets = async () => {
-            try {
-                const res = await fetch(`${API_URL}/api/set/all`);
-                if (!res.ok) throw new Error("Error getting sets");
-                const data = await res.json();
-                setAvailableSets(Array.isArray(data) ? data : []);
-            } catch (err) {
-                console.error(err);
-                setError("⚠️ The sets could not be loaded.");
-            }
-        };
-
-        fetchSets();
+    useEffect(function() {
+        fetch(API_URL + "/api/set/all")
+            .then(function(r) { return r.json(); })
+            .then(function(d) { setAvailableSets(Array.isArray(d) ? d : []); })
+            .catch(console.error);
     }, [API_URL]);
 
-    // Buscar cartas (con filtros)
-    useEffect(() => {
-        const fetchCards = async () => {
-            try {
-                const params = new URLSearchParams();
+    useEffect(function() {
+        var params = new URLSearchParams();
+        if (search) params.append("name", search);
+        if (number) params.append("number", number);
+        if (setId) params.append("setId", setId);
+        if (subtype) params.append("subtype", subtype);
+        if (type) params.append("type", type);
+        if (supertype) params.append("supertype", supertype);
+        if (rarity) params.append("rarity", rarity);
+        params.append("page", String(page));
+        params.append("pageSize", "55");
 
-                if (search) params.append("name", search);
-                if (number) params.append("number", number);
-                if (setId) params.append("setId", setId);
-                if (subtype) params.append("subtype", subtype);
-                if (type) params.append("type", type);
-                if (supertype) params.append("supertype", supertype);
-                if (rarity) params.append("rarity", rarity);
-                params.append("page", String(page));
-                params.append("pageSize", "55");
-
-                const res = await fetch(`${API_URL}/api/card/search?${params.toString()}`);
-                if (!res.ok) throw new Error("Error searching for cards");
-                const data = await res.json();
-
-                setCards(data?.items ?? []);
-                const totalCount = Number(data?.totalCount ?? 0);
-                const pageSize = Number(data?.pageSize ?? 55);
-                setTotalPages(pageSize > 0 ? Math.max(1, Math.ceil(totalCount / pageSize)) : 1);
-            } catch (err) {
-                console.error("Error loading cards:", err);
-            }
-        };
-
-        fetchCards();
+        fetch(API_URL + "/api/card/search?" + params)
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                setCards(d?.items ?? []);
+                var total = Number(d?.totalCount ?? 0);
+                var size = Number(d?.pageSize ?? 55);
+                setTotalPages(size > 0 ? Math.max(1, Math.ceil(total / size)) : 1);
+            })
+            .catch(console.error);
     }, [search, number, setId, supertype, type, subtype, rarity, page, API_URL]);
 
+    var field = function(label, value, setter, placeholder) {
+        return (
+            <div className="field-group">
+                <label className="field-label">{label}</label>
+                <input
+                    className="field-input"
+                    type="text"
+                    placeholder={placeholder}
+                    value={value}
+                    onChange={function(e) { setPage(1); setter(e.target.value); }}
+                />
+            </div>
+        );
+    };
+
+    var sel = function(label, value, setter, options, allLabel) {
+        return (
+            <div className="field-group">
+                <label className="field-label">{label}</label>
+                <select className="field-select" value={value} onChange={function(e) { setPage(1); setter(e.target.value); }}>
+                    <option value="">{allLabel}</option>
+                    {options.map(function(o, i) {
+                        var val = typeof o === "object" ? (o.setId ?? o.id ?? i) : o;
+                        var txt = typeof o === "object" ? (o.name ?? String(o.setId)) : o;
+                        return <option key={i} value={val}>{txt}</option>;
+                    })}
+                </select>
+            </div>
+        );
+    };
+
     return (
-        <div className="page-content">
-            <table
-                width="100%"
-                className="tcg-table pokemon-tcg-text"
-                style={{
-                    borderCollapse: "separate",
-                    borderSpacing: "0 10px",
-                    width: "100%",
-                    background: "#f8fafc",
-                    borderRadius: "12px",
-                    overflow: "hidden",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                    padding: "8px",
-                }}
-            >
-                <tbody>
-                    <tr>
-                        <td colSpan="6" style={{ textAlign: "center", padding: "12px 8px 6px" }}>
-                            <h2 style={{ margin: 0, color: "#075985", fontSize: "1.25rem", fontWeight: 700 }}>
-                                Search Card
-                            </h2>
-                        </td>
-                    </tr>
+        <div className="page-content-v2">
+            <h1 className="section-title">Search Cards</h1>
 
-                    {/* Filtros */}
-                    <tr>
-                        <td
-                            colSpan="6"
-                            style={{
-                                padding: "10px 14px",
-                                background: "#f8fafc",
-                                borderTop: "1px solid #e6edf3",
-                            }}
-                        >
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                                    gap: "10px 16px",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                }}
-                            >
-                                <div style={{ display: "flex", flexDirection: "column" }}>
-                                    <label style={{ fontSize: "0.85rem", color: "#334155", marginBottom: "4px", fontWeight: "500" }}>
-                                        Number:
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="Search by number"
-                                        value={number}
-                                        onChange={(e) => {
-                                            setPage(1);
-                                            setNumber(e.target.value);
-                                        }}
-                                        style={{
-                                            padding: "6px 8px",
-                                            width: "220px",
-                                            borderRadius: "6px",
-                                            border: "1px solid #d1d5db",
-                                            fontSize: "0.85rem",
-                                        }}
-                                    />
-                                </div>
-                                <div style={{ display: "flex", flexDirection: "column" }}>
-                                    <label style={{ fontSize: "0.85rem", color: "#334155", marginBottom: "4px", fontWeight: "500" }}>
-                                        Name:
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="Search by name"
-                                        value={search}
-                                        onChange={(e) => {
-                                            setPage(1);
-                                            setSearch(e.target.value);
-                                        }}
-                                        style={{
-                                            padding: "6px 8px",
-                                            width: "220px",
-                                            borderRadius: "6px",
-                                            border: "1px solid #d1d5db",
-                                            fontSize: "0.85rem",
-                                        }}
-                                    />
-                                </div>
-                                <div style={{ display: "flex", flexDirection: "column" }}>
-                                    <label style={{ fontSize: "0.85rem", color: "#334155", marginBottom: "4px", fontWeight: "500" }}>
-                                        Set:
-                                    </label>
-                                    <select
-                                        value={setId}
-                                        onChange={(e) => {
-                                            setPage(1);
-                                            setSetId(e.target.value);
-                                        }}
-                                        style={{
-                                            padding: "6px 8px",
-                                            width: "220px",
-                                            borderRadius: "6px",
-                                            border: "1px solid #d1d5db",
-                                            fontSize: "0.85rem",
-                                        }}
-                                    >
-                                        <option value="">All Sets</option>
-                                        {availableSets.map((s, i) => {
-                                            const id = s?.setId ?? s?.id ?? s?.ptcgoCode ?? i;
-                                            const nm = s?.name ?? s?.setName ?? s?.serie ?? String(id);
-                                            return (
-                                                <option key={i} value={id}>
-                                                    {nm}
-                                                </option>
-                                            );
-                                        })}
-                                    </select>
-                                </div>
-
-                                {/* Super Type */}
-                                <div style={{ display: "flex", flexDirection: "column" }}>
-                                    <label style={{ fontSize: "0.85rem", color: "#334155", marginBottom: "4px", fontWeight: "500" }}>
-                                        Super Type:
-                                    </label>
-                                    <select
-                                        value={supertype}
-                                        onChange={(e) => {
-                                            setPage(1);
-                                            setSuperType(e.target.value);
-                                        }}
-                                        style={{
-                                            padding: "6px 8px",
-                                            width: "220px",
-                                            borderRadius: "6px",
-                                            border: "1px solid #d1d5db",
-                                            fontSize: "0.85rem",
-                                        }}
-                                    >
-                                        <option value="">All Super Types</option>
-                                        {availableSuperTypes.map((s, i) => (
-                                            <option key={i} value={s}>
-                                                {s}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {/* Type */}
-                                <div style={{ display: "flex", flexDirection: "column" }}>
-                                    <label style={{ fontSize: "0.85rem", color: "#334155", marginBottom: "4px", fontWeight: "500" }}>
-                                        Type:
-                                    </label>
-                                    <select
-                                        value={type}
-                                        onChange={(e) => {
-                                            setPage(1);
-                                            setType(e.target.value);
-                                        }}
-                                        style={{
-                                            padding: "6px 8px",
-                                            width: "220px",
-                                            borderRadius: "6px",
-                                            border: "1px solid #d1d5db",
-                                            fontSize: "0.85rem",
-                                        }}
-                                    >
-                                        <option value="">All Types</option>
-                                        {availableTypes.map((t, i) => (
-                                            <option key={i} value={t}>
-                                                {t}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {/* Sub Type */}
-                                <div style={{ display: "flex", flexDirection: "column" }}>
-                                    <label style={{ fontSize: "0.85rem", color: "#334155", marginBottom: "4px", fontWeight: "500" }}>
-                                        Sub Type:
-                                    </label>
-                                    <select
-                                        value={subtype}
-                                        onChange={(e) => {
-                                            setPage(1);
-                                            setSubType(e.target.value);
-                                        }}
-                                        style={{
-                                            padding: "6px 8px",
-                                            width: "220px",
-                                            borderRadius: "6px",
-                                            border: "1px solid #d1d5db",
-                                            fontSize: "0.85rem",
-                                        }}
-                                    >
-                                        <option value="">All SubTypes</option>
-                                        {availableSubTypes.map((b, i) => (
-                                            <option key={i} value={b}>
-                                                {b}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {/* Rarity */}
-                                <div style={{ display: "flex", flexDirection: "column" }}>
-                                    <label style={{ fontSize: "0.85rem", color: "#334155", marginBottom: "4px", fontWeight: "500" }}>
-                                        Rarity:
-                                    </label>
-                                    <select
-                                        value={rarity}
-                                        onChange={(e) => {
-                                            setPage(1);
-                                            setRarity(e.target.value);
-                                        }}
-                                        style={{
-                                            padding: "6px 8px",
-                                            width: "220px",
-                                            borderRadius: "6px",
-                                            border: "1px solid #d1d5db",
-                                            fontSize: "0.85rem",
-                                        }}
-                                    >
-                                        <option value="">All Rarities</option>
-                                        {availableRarities.map((r, i) => (
-                                            <option key={i} value={r}>
-                                                {r}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-
-            {/* Cards */}
-            <br />
-            <div className="all-cards">
-                <div className="card-grid-search">
-                    {cards.map((card) => (
-                        <div key={card.cardId} className="card-item">
-                            <Link to={`/card/cardid/${card.cardId}`}>
-                                <img src={card.imageLarge} alt={card.name} className="card-image" />
-                            </Link>
-                        </div>
-                    ))}
+            <div className="glass-panel" style={{ marginBottom: 24 }}>
+                <div className="filter-grid">
+                    {field("Number", number, setNumber, "e.g. 25")}
+                    {field("Name", search, setSearch, "e.g. Charizard")}
+                    {sel("Set", setId, setSetId, availableSets, "All Sets")}
+                    {sel("Super Type", supertype, setSuperType, availableSuperTypes, "All")}
+                    {sel("Type", type, setType, availableTypes, "All")}
+                    {sel("Sub Type", subtype, setSubType, availableSubTypes, "All")}
+                    {sel("Rarity", rarity, setRarity, availableRarities, "All")}
                 </div>
             </div>
 
-            {/* Pagination */}
-            <div
-                style={{
-                    gap: "8px",
-                    position: "fixed",
-                    bottom: 0,
-                    left: 0,
-                    width: "100%",
-                    background: "#ffffff",
-                    borderTop: "2px solid #3b82f6",
-                    padding: "3px 0",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    boxShadow: "0 -2px 8px rgba(0,0,0,0.1)",
-                    zIndex: 1000,
-                }}
-            >
-                <button
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => p - 1)}
-                    style={{ padding: "4px 6px", borderRadius: "4px", border: "1px solid #ddd" }}
-                >
-                   ⬅
+            <div className="card-grid-v2">
+                {cards.map(function(card) {
+                    return (
+                        <Link key={card.cardId} to={"/card/cardid/" + card.cardId}>
+                            <div className="card-thumb">
+                                <img src={card.imageLarge} alt={card.name} />
+                            </div>
+                        </Link>
+                    );
+                })}
+            </div>
+
+            <div className="pagination-bar">
+                <button className="btn btn-outline btn-xs" disabled={page <= 1} onClick={function() { setPage(function(p) { return p - 1; }); }}>
+                    {"\u25C0"} Prev
                 </button>
-
-                <span style={{ fontWeight: "bold", color: "#1f2937" }}>
-                    Page {page} of {totalPages}
+                <span>
+                    Page <strong>{page}</strong> of <strong>{totalPages}</strong>
                 </span>
-
-                <button
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                    style={{ padding: "4px 6px", borderRadius: "4px", border: "1px solid #ddd" }}
-                >
-                    ➡
+                <button className="btn btn-outline btn-xs" disabled={page >= totalPages} onClick={function() { setPage(function(p) { return p + 1; }); }}>
+                    Next {"\u25B6"}
                 </button>
             </div>
         </div>

@@ -1,59 +1,30 @@
-﻿// src/pages/Home.jsx
 import { Link } from "react-router-dom";
+import tcgLogo from "../images/Pokemon_Trading_Card_Game_logo.png";
 
-// src/pages/Home.jsx
-// src/pages/Home.jsx
 export default function Home() {
     return (
-        <div className="page-content">
-            <div
-                style={{
-                    height: "100vh",
-                    margin: 0,                    
-                    padding: 0,
-                    overflow: "hidden", // evita cualquier scroll
-                }}
-            >
-                <div
-                    style={{
-                        //backgroundImage: 'url("/src/images/pokemontcgHome2.png")',
-                        backgroundColor: "white",
-                        backgroundSize: "cover",
-                        backgroundPosition: "top center", // 👈 imagen anclada arriba
-                        backgroundRepeat: "repeat",
-                        backgroundAttachment: "fixed",
-                        height: "100%",
-                        maxWidth: "1000px",
-                        margin: "0 auto",
-                        borderRadius: "12px",
-                        boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "flex-start", // 👈 contenido arriba
-                        alignItems: "center",
-                        paddingTop: "40px", // 👈 separa un poco desde arriba
-                        boxSizing: "border-box",
-                    }}
-                >
-                    <img
-                        src="/src/images/Pokémon_Trading_Card_Game_logo.png"
-                        alt="Pokémon TCG Logo"
-                        style={{
-                            width: "400px",
-                            height: "auto",
-                            display: "block",
-                            marginBottom: "20px",
-                        }}
-                    />
-                    <strong
-                        style={{
-                            fontSize: "18px",
-                            color: "black",
-                        }}
-                    >
-                        Explore cards, build decks, and collect accessories.
-                    </strong>
-                </div>
+        <div className="home-hero">
+            <img
+                src={tcgLogo}
+                alt="Pok\u00e9mon TCG Logo"
+                className="home-logo-img"
+            />
+            <p className="home-tagline">
+                Explore cards &middot; Build decks &middot; Collect them all
+            </p>
+            <div className="home-actions">
+                <Link to="/card/SearchCard" className="btn btn-gold">
+                    {"\uD83D\uDD0D"} Search Cards
+                </Link>
+                <Link to="/allsets" className="btn btn-outline">
+                    {"\uD83D\uDCE6"} Browse Sets
+                </Link>
+                <Link to="/CreateDeck" className="btn btn-blue">
+                    {"\uD83E\uDDE9"} Build Deck
+                </Link>
+                <Link to="/CreateCollection" className="btn btn-outline">
+                    {"\u2B50"} New Collection
+                </Link>
             </div>
         </div>
     );

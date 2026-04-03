@@ -1,19 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using PokemonTCG.API.DTOs;
+﻿using PokemonTCG.API.DTOs;
 using PokemonTCG.API.Models;
 using PokemonTCG.API.Repositories;
 using PokemonTCG.API.Responses;
 using PokemonTCG.SDK.Infrastructure.HttpClients;
 using PokemonTCG.SDK.Infrastructure.HttpClients.Set;
 using PokemonTCG.SDK.Infrastructure.HttpClients.CommonModels;
-using Microsoft.Extensions.Logging;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Reflection;
 using Polly;
-using System.Net.Http;
 using PokemonTCG.SDK.Infrastructure.HttpClients.Base;
 
 namespace PokemonTCG.API.Services
