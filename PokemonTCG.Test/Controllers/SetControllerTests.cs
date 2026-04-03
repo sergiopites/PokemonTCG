@@ -133,7 +133,7 @@ namespace PokemonTCG.Test.Controllers
         [Fact]
         public async Task GetSetBySerie_ReturnsOk_WhenFound()
         {
-            var sets = new List<SetDetailResponse> { new() { SetId = "xy1", Serie = "XY" } };
+            var sets = new List<SetDetailResponse> { new() { SetId = "xy1", Series = "XY" } };
             _mockSetService.Setup(s => s.GetSetBySerieAsync("XY")).ReturnsAsync(sets);
 
             var result = await _controller.GetSetBySerie("XY");

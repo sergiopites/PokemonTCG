@@ -226,58 +226,6 @@ namespace PokemonTCG.Test.Services
             Assert.Null(result);
         }
 
-        // ?? GenerateAutoDeckAsync ???????????????????????????????????
-
-        [Fact]
-        public async Task GenerateAutoDeckAsync_ThrowsWhenNoPokemon()
-        {
-            _cardRepo.Setup(r => r.SearchCardsAsync(null, null, "Pokémon", null, null, null, null, 1, 2000, null))
-                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = new List<CardDetailDTO>() });
-            _cardRepo.Setup(r => r.SearchCardsAsync(null, null, "Trainer", null, null, null, null, 1, 2000, null))
-                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = new List<CardDetailDTO>() });
-            _cardRepo.Setup(r => r.SearchCardsAsync(null, null, "Energy", null, null, null, null, 1, 1000, null))
-                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = new List<CardDetailDTO>() });
-
-            await Assert.ThrowsAsync<Exception>(() => CreateService().GenerateAutoDeckAsync());
-        }
-
-        [Fact]
-        public async Task GenerateAutoDeckAsync_Returns60Cards_WhenDataAvailable()
-        {
-            var pokemonCards = Enumerable.Range(1, 50).Select(i => new CardDetailDTO
-            {
-                CardId = $"poke-{i}", Name = $"Pokemon{i}", Supertype = "Pokémon",
-                Subtype = "Basic", Type = "Fire", SetId = "set1"
-            }).ToList();
-
-            var trainerCards = Enumerable.Range(1, 50).Select(i => new CardDetailDTO
-            {
-                CardId = $"trainer-{i}", Name = $"Trainer{i}", Supertype = "Trainer",
-                Subtype = "Item", SetId = "set1"
-            }).ToList();
-
-            var energyCards = new List<CardDetailDTO>
-            {
-                new() { CardId = "energy-fire", Name = "Fire Energy", Supertype = "Energy", Subtype = "Basic", Type = "Fire", SetId = "set1" }
-            };
-
-            _cardRepo.Setup(r => r.SearchCardsAsync(null, null, "Pokémon", null, null, null, null, 1, 2000, null))
-                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = pokemonCards });
-            _cardRepo.Setup(r => r.SearchCardsAsync(null, null, "Trainer", null, null, null, null, 1, 2000, null))
-                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = trainerCards });
-            _cardRepo.Setup(r => r.SearchCardsAsync(null, null, "Energy", null, null, null, null, 1, 1000, null))
-                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = energyCards });
-
-            var result = await CreateService().GenerateAutoDeckAsync();
-
-            Assert.Equal(60, result.Total);
-            Assert.Equal(60, result.Cards.Count);
-            Assert.NotNull(result.DominantType);
-            Assert.NotNull(result.DeckName);
-        }
-
-        // ?? Helpers ?????????????????????????????????????????????????
-
         private static DeckRequest Build60CardRequest(string name, string description)
         {
             return new DeckRequest

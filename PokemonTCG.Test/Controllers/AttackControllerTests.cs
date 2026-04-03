@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using PokemonTCG.API.Controllers;
+using PokemonTCG.API.Models;
 using PokemonTCG.API.Services;
 
 namespace PokemonTCG.Test.Controllers
@@ -19,7 +20,7 @@ namespace PokemonTCG.Test.Controllers
         [Fact]
         public async Task GetAttacksByCardId_ReturnsOk_WhenAttacksExist()
         {
-            var attacks = new List<dynamic> { new { Name = "Thunder Shock", Damage = "30" } };
+            var attacks = new List<Attack> { new() { Name = "Thunder Shock", Damage = "30" } };
             _mockAttackService.Setup(s => s.GetAttacksByCardIdAsync("xy1-1")).ReturnsAsync(attacks);
 
             var result = await _controller.GetAttacksByCardId("xy1-1");
@@ -31,7 +32,7 @@ namespace PokemonTCG.Test.Controllers
         [Fact]
         public async Task GetAttacksByCardId_ReturnsNotFound_WhenEmpty()
         {
-            _mockAttackService.Setup(s => s.GetAttacksByCardIdAsync("nope")).ReturnsAsync(new List<dynamic>());
+            _mockAttackService.Setup(s => s.GetAttacksByCardIdAsync("nope")).ReturnsAsync(new List<Attack>());
 
             var result = await _controller.GetAttacksByCardId("nope");
 
@@ -41,7 +42,7 @@ namespace PokemonTCG.Test.Controllers
         [Fact]
         public async Task GetAttacksByCardId_ReturnsNotFound_WhenNull()
         {
-            _mockAttackService.Setup(s => s.GetAttacksByCardIdAsync("nope")).ReturnsAsync((List<dynamic>)null!);
+            _mockAttackService.Setup(s => s.GetAttacksByCardIdAsync("nope")).ReturnsAsync((List<Attack>)null!);
 
             var result = await _controller.GetAttacksByCardId("nope");
 

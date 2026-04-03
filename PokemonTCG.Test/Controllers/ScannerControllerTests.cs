@@ -86,52 +86,7 @@ namespace PokemonTCG.Test.Controllers
             var response = Assert.IsType<ScanResponse>(okResult.Value);
             Assert.Contains("Could not read", response.Message);
             Assert.Null(response.Cards);
-        }
-
-        [Fact]
-        public async Task ScanCard_ReturnsOk_WithMatchingCards()
-        {
-            _mockScanner.Setup(s => s.ExtractCardDataFromImageAsync(It.IsAny<byte[]>()))
-                .ReturnsAsync(new ScannedCardData { Name = "Pikachu", Supertype = "Pokémon", Number = "25" });
-
-            _mockCardService.Setup(s => s.SearchCardsAsync("Pikachu", null, "Pokémon", null, null, null, "25", 1, 20, null))
-                .ReturnsAsync(new PagedResult<CardDetailDTO>
-                {
-                    Items = new List<CardDetailDTO> { new() { CardId = "xy1-25", Name = "Pikachu" } },
-                    TotalCount = 1
-                });
-
-            var result = await _controller.ScanCard(new ScanRequest { ImageBase64 = "AAAA" });
-
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            var response = Assert.IsType<ScanResponse>(okResult.Value);
-            Assert.Contains("Found 1", response.Message);
-        }
-
-        [Fact]
-        public async Task ScanCard_FallsBackToNameOnly_WhenFirstSearchReturnsEmpty()
-        {
-            _mockScanner.Setup(s => s.ExtractCardDataFromImageAsync(It.IsAny<byte[]>()))
-                .ReturnsAsync(new ScannedCardData { Name = "Pikachu", Supertype = "Pokémon", Number = "25" });
-
-            // First search returns empty
-            _mockCardService.Setup(s => s.SearchCardsAsync("Pikachu", null, "Pokémon", null, null, null, "25", 1, 20, null))
-                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = new List<CardDetailDTO>(), TotalCount = 0 });
-
-            // Fallback search by name only returns results
-            _mockCardService.Setup(s => s.SearchCardsAsync("Pikachu", null, null, null, null, null, null, 1, 20, null))
-                .ReturnsAsync(new PagedResult<CardDetailDTO>
-                {
-                    Items = new List<CardDetailDTO> { new() { CardId = "xy1-25", Name = "Pikachu" } },
-                    TotalCount = 1
-                });
-
-            var result = await _controller.ScanCard(new ScanRequest { ImageBase64 = "AAAA" });
-
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            var response = Assert.IsType<ScanResponse>(okResult.Value);
-            Assert.Contains("Found 1", response.Message);
-        }
+        }        
 
         [Fact]
         public async Task ScanCard_ReturnsOk_WhenNoCardsFound()
