@@ -8,6 +8,7 @@ var ICO_DICE  = "\uD83C\uDFB2";
 var ICO_CLIP  = "\uD83D\uDCCB";
 var ICO_SAVE  = "\uD83D\uDCBE";
 var ICO_PAGE  = "\uD83D\uDCC4";
+var ICO_XLS   = "\uD83D\uDCCA";
 
 export default function CreateDeck() {
     const [name, setName] = useState("");
@@ -34,6 +35,7 @@ export default function CreateDeck() {
     const [importText, setImportText] = useState("");
     const [backImagePath, setBackImagePath] = useState("");
     const [exporting, setExporting] = useState(false);
+    const [exportProgress, setExportProgress] = useState(0);
 
     const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -95,7 +97,7 @@ export default function CreateDeck() {
                 if (!isEnergy && found.quantity >= 4) { setMessage(ICO_WARN + " Limit of 4 copies reached."); return prev; }
                 return prev.map(c => c.cardId === id ? { ...c, quantity: c.quantity + 1 } : c);
             }
-            if (total < 60) return [...prev, { cardId: id, name: obj?.name ?? "Unknown", supertype: obj?.supertype ?? "", subtype: obj?.subtype ?? "", quantity: 1, ptcgocode: obj?.ptcgocode ?? obj?.ptcgoCode ?? "", number: obj?.number ?? "", imageLarge: obj?.imageLarge ?? "" }];
+            if (total < 60) return [...prev, { cardId: id, name: obj?.name ?? "Unknown", supertype: obj?.supertype ?? "", subtype: obj?.subtype ?? "", quantity: 1, ptcgocode: obj?.ptcgocode ?? obj?.ptcgoCode ?? "", number: obj?.number ?? "", imageLarge: obj?.imageLarge ?? "", type: obj?.type ?? "", rarity: obj?.rarity ?? "", setName: obj?.setName ?? "", setId: obj?.setId ?? "", artist: obj?.artist ?? "", hp: obj?.hp ?? null, evolvesFrom: obj?.evolvesFrom ?? "", evolvesTo: obj?.evolvesTo ?? "" }];
             setMessage(ICO_WARN + " No more cards (limit 60)."); return prev;
         });
     };
@@ -103,7 +105,7 @@ export default function CreateDeck() {
     const removeCard = (cardId) => setSelectedCards(prev => { const f = prev.find(c => c.cardId === cardId); if (!f) return prev; if (f.quantity > 1) return prev.map(c => c.cardId === cardId ? { ...c, quantity: c.quantity - 1 } : c); return prev.filter(c => c.cardId !== cardId); });
     const deleteCard = (cardId) => setSelectedCards(prev => prev.filter(c => c.cardId !== cardId));
 
-    const clearSelection = () => { setName(""); setDescription(""); setError(""); setMessage(""); setLoading(false); setSelectedCards([]); setPage(1); setTotalPages(1); setShowImportModal(false); setImportText(""); };
+    const clearSelection = () => { setName(""); setDescription(""); setError(""); setMessage(""); setLoading(false); setSelectedCards([]); setPage(1); setShowImportModal(false); setImportText(""); };
 
     const handleSubmit = async () => {
         if (!name.trim()) { setMessage(ICO_WARN + " Please enter a deck name."); return; }
@@ -124,7 +126,7 @@ export default function CreateDeck() {
             const data = await res.json();
             if (!data || !Array.isArray(data.cards)) throw new Error("Invalid response");
             const grouped = {};
-            for (const card of data.cards) { const id = card.cardId ?? card.id ?? (card.name + "-" + card.setId); if (!grouped[id]) grouped[id] = { cardId: id, name: card.name ?? "Unknown", supertype: card.supertype ?? "", subtype: card.subtype ?? "", quantity: 0, ptcgocode: card.ptcgocode ?? "", number: card.number ?? "", imageLarge: card.imageLarge ?? "" }; grouped[id].quantity += 1; }
+            for (const card of data.cards) { const id = card.cardId ?? card.id ?? (card.name + "-" + card.setId); if (!grouped[id]) grouped[id] = { cardId: id, name: card.name ?? "Unknown", supertype: card.supertype ?? "", subtype: card.subtype ?? "", quantity: 0, ptcgocode: card.ptcgocode ?? "", number: card.number ?? "", imageLarge: card.imageLarge ?? "", type: card.type ?? "", rarity: card.rarity ?? "", setName: card.setName ?? "", setId: card.setId ?? "", artist: card.artist ?? "", hp: card.hp ?? null, evolvesFrom: card.evolvesFrom ?? "", evolvesTo: card.evolvesTo ?? "" }; grouped[id].quantity += 1; }
             const newDeck = Object.values(grouped);
             const totalQty = newDeck.reduce((s, c) => s + c.quantity, 0);
             setSelectedCards(newDeck);
@@ -137,16 +139,83 @@ export default function CreateDeck() {
 
     const handleDownloadDeckPdf = async () => {
         if (!selectedCards.length) { alert("No cards in deck."); return; }
-        setExporting(true);
+        setExporting(true); setExportProgress(0);
         try {
             const urls = [];
             for (const c of selectedCards) for (var i = 0; i < (c.quantity || 1); i++) if (c.imageLarge) urls.push(c.imageLarge);
+            if (!urls.length) { alert("No card images available to export."); return; }
             if (backImagePath) { var n = urls.length; for (var j = 0; j < n; j++) urls.push(backImagePath); }
             const safe = (name?.trim() || "Deck").replace(/\s+/g, "_").replace(/[^\w\-\.]/g, "");
-            const r = await fetch(API_URL + "/api/printer/generatedeck", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imageUrls: urls, fileName: safe }) });
-            if (!r.ok) throw new Error("PDF error");
-            const blob = await r.blob(); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = safe + ".pdf"; a.click(); URL.revokeObjectURL(a.href);
-        } catch (e) { alert("Could not export PDF."); console.error(e); } finally { setExporting(false); }
+            const r = await fetch(API_URL + "/api/printer/generatedeck/progress", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imageUrls: urls, fileName: safe }) });
+            if (!r.ok) { const errText = await r.text().catch(() => "PDF error"); throw new Error(errText); }
+            const reader = r.body.getReader();
+            const decoder = new TextDecoder();
+            let buf = "";
+            let pdfData = null;
+            let pdfFileName = safe + ".pdf";
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                buf += decoder.decode(value, { stream: true });
+                const lines = buf.split("\n");
+                buf = lines.pop();
+                for (const line of lines) {
+                    if (!line.startsWith("data: ")) continue;
+                    try {
+                        const evt = JSON.parse(line.slice(6));
+                        if (evt.progress != null) setExportProgress(evt.progress);
+                        if (evt.done && evt.pdf) { pdfData = evt.pdf; pdfFileName = evt.fileName || pdfFileName; }
+                        if (evt.error) throw new Error(evt.error);
+                    } catch (pe) { if (pe.message && !pe.message.includes("JSON")) throw pe; }
+                }
+            }
+            if (!pdfData) throw new Error("No PDF received");
+            setExportProgress(100);
+            const byteChars = atob(pdfData);
+            const byteArr = new Uint8Array(byteChars.length);
+            for (let k = 0; k < byteChars.length; k++) byteArr[k] = byteChars.charCodeAt(k);
+            const blob = new Blob([byteArr], { type: "application/pdf" });
+            const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = pdfFileName; a.click(); URL.revokeObjectURL(a.href);
+        } catch (e) { alert("Could not export PDF."); console.error(e); } finally { setExporting(false); setExportProgress(0); }
+    };
+
+    const handleDownloadDeckXls = async () => {
+        if (!selectedCards.length) { alert("No cards in deck."); return; }
+        setExporting(true); setExportProgress(0);
+        try {
+            const cardsPayload = selectedCards.map(c => ({ cardId: c.cardId || "", name: c.name || "", supertype: c.supertype || "", subtype: c.subtype || "", type: c.type || "", rarity: c.rarity || "", setName: c.setName || "", setId: c.setId || "", number: c.number || "", artist: c.artist || "", ptcgocode: c.ptcgocode || "", quantity: c.quantity || 1, imageLarge: c.imageLarge || "", hp: c.hp ?? null, evolvesFrom: c.evolvesFrom || "", evolvesTo: c.evolvesTo || "" }));
+            const safe = (name?.trim() || "Deck").replace(/\s+/g, "_").replace(/[^\w\-\.]/g, "");
+            const r = await fetch(API_URL + "/api/printer/generateexcel/progress", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cards: cardsPayload, fileName: safe }) });
+            if (!r.ok) { const errText = await r.text().catch(() => "XLS error"); throw new Error(errText); }
+            const reader = r.body.getReader();
+            const decoder = new TextDecoder();
+            let buf = "";
+            let xlsData = null;
+            let xlsFileName = safe + ".xlsx";
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                buf += decoder.decode(value, { stream: true });
+                const lines = buf.split("\n");
+                buf = lines.pop();
+                for (const line of lines) {
+                    if (!line.startsWith("data: ")) continue;
+                    try {
+                        const evt = JSON.parse(line.slice(6));
+                        if (evt.progress != null) setExportProgress(evt.progress);
+                        if (evt.done && evt.excel) { xlsData = evt.excel; xlsFileName = evt.fileName || xlsFileName; }
+                        if (evt.error) throw new Error(evt.error);
+                    } catch (pe) { if (pe.message && !pe.message.includes("JSON")) throw pe; }
+                }
+            }
+            if (!xlsData) throw new Error("No XLS received");
+            setExportProgress(100);
+            const byteChars = atob(xlsData);
+            const byteArr = new Uint8Array(byteChars.length);
+            for (let k = 0; k < byteChars.length; k++) byteArr[k] = byteChars.charCodeAt(k);
+            const blob = new Blob([byteArr], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = xlsFileName; a.click(); URL.revokeObjectURL(a.href);
+        } catch (e) { alert("Could not export XLS."); console.error(e); } finally { setExporting(false); setExportProgress(0); }
     };
 
     const handleImportFromText = async () => {
@@ -154,16 +223,20 @@ export default function CreateDeck() {
         setLoading(true);
         try {
             const lines = importText.split("\n").map(l => l.trim()).filter(l => l && !/^pok\u00e9mon|trainer|energies|cards totals/i.test(l));
-            const regex = /^(\d+)\s+([\p{L}\p{N}\s''\u201C\u201D"\.\-:,&()]+?)\s*(?:\(?([A-Z0-9\-]{2,6})\)?(?:\s+(\d+))?)?$/u;
+            const regex = /^(\d+)\s+([\p{L}\p{N}\s''\u201C\u201D"\.\-:,&()\[\]]+?)\s*(?:\(?([A-Z0-9\-]{2,6})\)?(?:\s+(\d+))?)?$/u;
             const parsed = [], unparsed = [];
             for (const line of lines) { const m = line.match(regex); if (m) parsed.push({ quantity: parseInt(m[1], 10), name: (m[2] || "").trim(), ptcgocode: (m[3] || "").trim(), number: (m[4] || "").trim() }); else unparsed.push(line); }
             if (!parsed.length) { alert(ICO_WARN + " No valid lines detected."); setLoading(false); return; }
             const found = [], notFound = [];
+            const searchName = (n) => n.replace(/\s*\[.*?\]\s*$/, "").trim();
+            const findMatch = (list, card) => (card.number ? list.find(c => String(c.number) === card.number) : null) || list.find(c => (c.name || "").toLowerCase() === card.name.toLowerCase()) || list.find(c => (c.name || "").toLowerCase() === searchName(card.name).toLowerCase()) || (list.length > 0 ? list[0] : null);
             for (const card of parsed) {
                 try {
-                    const url = API_URL + "/api/card/search?name=" + encodeURIComponent(card.name) + "&ptcgocode=" + encodeURIComponent(card.ptcgocode) + "&number=" + encodeURIComponent(card.number) + "&page=1&pageSize=10";
-                    const res = await fetch(url); if (!res.ok) continue; const data = await res.json(); const list = data.items ?? data.data ?? [];
-                    const match = list.find(c => String(c.number) === card.number) || list.find(c => (c.name || "").toLowerCase() === card.name.toLowerCase()) || null;
+                    const cleanName = searchName(card.name);
+                    const url = API_URL + "/api/card/search?name=" + encodeURIComponent(cleanName) + (card.ptcgocode ? "&ptcgocode=" + encodeURIComponent(card.ptcgocode) : "") + (card.number ? "&number=" + encodeURIComponent(card.number) : "") + "&page=1&pageSize=10";
+                    const res = await fetch(url); if (!res.ok) continue; const data = await res.json(); var list = data.items ?? data.data ?? [];
+                    if (!list.length && card.ptcgocode) { const url2 = API_URL + "/api/card/search?name=" + encodeURIComponent(cleanName) + "&page=1&pageSize=10"; const res2 = await fetch(url2); if (res2.ok) { const data2 = await res2.json(); list = data2.items ?? data2.data ?? []; } }
+                    const match = findMatch(list, card);
                     if (match) found.push({ ...match, quantity: card.quantity, ptcgocode: match.ptcgocode ?? match.ptcgoCode ?? card.ptcgocode }); else notFound.push(card);
                 } catch (err) { notFound.push(card); }
             }
@@ -173,7 +246,7 @@ export default function CreateDeck() {
                 for (const card of found) {
                     const id = card.cardId ?? card.id ?? (card.name + "-" + (card.ptcgocode ?? card.number));
                     const isEnergy = (card.supertype ?? "").toLowerCase() === "energy";
-                    if (!grouped[id]) grouped[id] = { cardId: id, name: card.name, supertype: card.supertype, subtype: card.subtype, quantity: 0, ptcgocode: card.ptcgocode ?? "", number: card.number ?? "", imageLarge: card.imageLarge ?? "" };
+                    if (!grouped[id]) grouped[id] = { cardId: id, name: card.name, supertype: card.supertype, subtype: card.subtype, quantity: 0, ptcgocode: card.ptcgocode ?? "", number: card.number ?? "", imageLarge: card.imageLarge ?? "", type: card.type ?? "", rarity: card.rarity ?? "", setName: card.setName ?? "", setId: card.setId ?? "", artist: card.artist ?? "", hp: card.hp ?? null, evolvesFrom: card.evolvesFrom ?? "", evolvesTo: card.evolvesTo ?? "" };
                     const totalNow = Object.values(grouped).reduce((s, c) => s + c.quantity, 0);
                     const remaining = 60 - totalNow; if (remaining <= 0) break;
                     const canAdd = Math.min(isEnergy ? card.quantity : Math.min(4 - grouped[id].quantity, card.quantity), remaining);
@@ -270,7 +343,18 @@ export default function CreateDeck() {
                         <button className="btn btn-blue btn-xs" onClick={handleDownloadDeckPdf} disabled={exporting}>
                             {exporting ? "Exporting\u2026" : ICO_PAGE + " Export PDF"}
                         </button>
+                        <button className="btn btn-green btn-xs" onClick={handleDownloadDeckXls} disabled={exporting}>
+                            {exporting ? "Exporting\u2026" : ICO_XLS + " Export XLS"}
+                        </button>
                     </div>
+                    {exporting && (
+                        <div className="export-progress-wrap">
+                            <div className="export-progress-track">
+                                <div className="export-progress-fill" style={{ width: exportProgress + "%" }} />
+                            </div>
+                            <div className="export-progress-label">{exportProgress}%</div>
+                        </div>
+                    )}
 
                     {selectedCards.length === 0
                         ? <p style={{ textAlign: "center", color: "var(--text-dim)", padding: "20px 0" }}>No cards selected</p>

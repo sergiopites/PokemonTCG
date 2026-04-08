@@ -22,5 +22,11 @@ namespace PokemonTCG.API.DTOs
         public string? SetName { get; set; }
         public string? SetId { get; set; }
         public string? Ptcgocode { get; set; }
+        public string? Type { get; set; }
+        public string? Rarity { get; set; }
+        public string? Artist { get; set; }
+        public int? HP { get; set; }
+        public string? EvolvesFrom { get; set; }
+        public string? EvolvesTo { get; set; }
     }
 }

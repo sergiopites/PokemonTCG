@@ -6,6 +6,7 @@ var ICO_OK   = "\u2705";
 var ICO_FAIL = "\u274C";
 var ICO_SAVE = "\uD83D\uDCBE";
 var ICO_PAGE = "\uD83D\uDCC4";
+var ICO_XLS  = "\uD83D\uDCCA";
 
 export default function CreateCollection() {
     const [name, setName] = useState("");
@@ -28,6 +29,7 @@ export default function CreateCollection() {
     const [availableSubTypes, setAvailableSubTypes] = useState([]);
     const [availableRarities, setAvailableRarities] = useState([]);
     const [exporting, setExporting] = useState(false);
+    const [exportProgress, setExportProgress] = useState(0);
     const [backImagePath, setBackImagePath] = useState("");
 
     const API_URL = import.meta.env.VITE_API_URL || "";
@@ -90,6 +92,9 @@ export default function CreateCollection() {
                 quantity: 1, ptcgocode: obj?.ptcgocode ?? "",
                 number: obj?.number ?? "", setName: obj?.setName ?? "", setId: obj?.setId ?? "",
                 imageLarge: obj?.imageLarge ?? "",
+                type: obj?.type ?? "", rarity: obj?.rarity ?? "",
+                artist: obj?.artist ?? "", hp: obj?.hp ?? null,
+                evolvesFrom: obj?.evolvesFrom ?? "", evolvesTo: obj?.evolvesTo ?? "",
             }];
         });
     };
@@ -123,25 +128,86 @@ export default function CreateCollection() {
 
     const handleExportPdf = async () => {
         if (!selectedCards.length) { alert("No cards to export."); return; }
-        setExporting(true);
+        setExporting(true); setExportProgress(0);
         try {
             const urls = [];
             for (const c of selectedCards) for (var i = 0; i < (c.quantity || 1); i++) if (c.imageLarge) urls.push(c.imageLarge);
             if (backImagePath) { var n = urls.length; for (var j = 0; j < n; j++) urls.push(backImagePath); }
             const safe = (name?.trim() || "Collection").replace(/\s+/g, "_").replace(/[^\w\-\.]/g, "");
-            const r = await fetch(API_URL + "/api/printer/generatedeck", {
+            const r = await fetch(API_URL + "/api/printer/generatedeck/progress", {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ imageUrls: urls, fileName: safe }),
             });
             if (!r.ok) throw new Error("PDF error");
-            const blob = await r.blob();
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = safe + ".pdf";
-            a.click();
-            URL.revokeObjectURL(a.href);
+            const reader = r.body.getReader();
+            const decoder = new TextDecoder();
+            let buf = "";
+            let pdfData = null;
+            let pdfFileName = safe + ".pdf";
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                buf += decoder.decode(value, { stream: true });
+                const lines = buf.split("\n");
+                buf = lines.pop();
+                for (const line of lines) {
+                    if (!line.startsWith("data: ")) continue;
+                    try {
+                        const evt = JSON.parse(line.slice(6));
+                        if (evt.progress != null) setExportProgress(evt.progress);
+                        if (evt.done && evt.pdf) { pdfData = evt.pdf; pdfFileName = evt.fileName || pdfFileName; }
+                        if (evt.error) throw new Error(evt.error);
+                    } catch (pe) { if (pe.message && !pe.message.includes("JSON")) throw pe; }
+                }
+            }
+            if (!pdfData) throw new Error("No PDF received");
+            setExportProgress(100);
+            const byteChars = atob(pdfData);
+            const byteArr = new Uint8Array(byteChars.length);
+            for (let k = 0; k < byteChars.length; k++) byteArr[k] = byteChars.charCodeAt(k);
+            const blob = new Blob([byteArr], { type: "application/pdf" });
+            const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = pdfFileName; a.click(); URL.revokeObjectURL(a.href);
         } catch (e) { alert("Could not export PDF."); console.error(e); }
-        finally { setExporting(false); }
+        finally { setExporting(false); setExportProgress(0); }
+    };
+
+    const handleExportXls = async () => {
+        if (!selectedCards.length) { alert("No cards to export."); return; }
+        setExporting(true); setExportProgress(0);
+        try {
+            const cardsPayload = selectedCards.map(c => ({ cardId: c.cardId || "", name: c.name || "", supertype: c.supertype || "", subtype: c.subtype || "", type: c.type || "", rarity: c.rarity || "", setName: c.setName || "", setId: c.setId || "", number: c.number || "", artist: c.artist || "", ptcgocode: c.ptcgocode || "", quantity: c.quantity || 1, imageLarge: c.imageLarge || "", hp: c.hp ?? null, evolvesFrom: c.evolvesFrom || "", evolvesTo: c.evolvesTo || "" }));
+            const safe = (name?.trim() || "Collection").replace(/\s+/g, "_").replace(/[^\w\-\.]/g, "");
+            const r = await fetch(API_URL + "/api/printer/generateexcel/progress", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cards: cardsPayload, fileName: safe }) });
+            if (!r.ok) throw new Error("XLS error");
+            const reader = r.body.getReader();
+            const decoder = new TextDecoder();
+            let buf = "";
+            let xlsData = null;
+            let xlsFileName = safe + ".xlsx";
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                buf += decoder.decode(value, { stream: true });
+                const lines = buf.split("\n");
+                buf = lines.pop();
+                for (const line of lines) {
+                    if (!line.startsWith("data: ")) continue;
+                    try {
+                        const evt = JSON.parse(line.slice(6));
+                        if (evt.progress != null) setExportProgress(evt.progress);
+                        if (evt.done && evt.excel) { xlsData = evt.excel; xlsFileName = evt.fileName || xlsFileName; }
+                        if (evt.error) throw new Error(evt.error);
+                    } catch (pe) { if (pe.message && !pe.message.includes("JSON")) throw pe; }
+                }
+            }
+            if (!xlsData) throw new Error("No XLS received");
+            setExportProgress(100);
+            const byteChars = atob(xlsData);
+            const byteArr = new Uint8Array(byteChars.length);
+            for (let k = 0; k < byteChars.length; k++) byteArr[k] = byteChars.charCodeAt(k);
+            const blob = new Blob([byteArr], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = xlsFileName; a.click(); URL.revokeObjectURL(a.href);
+        } catch (e) { alert("Could not export XLS."); console.error(e); } finally { setExporting(false); setExportProgress(0); }
     };
 
     const fieldInput = (label, value, setter, placeholder) => (
@@ -232,11 +298,22 @@ export default function CreateCollection() {
                         </div>
                     </div>
 
-                    <div style={{ marginBottom: 10, display: "flex", justifyContent: "flex-end" }}>
+                    <div style={{ marginBottom: 10, display: "flex", justifyContent: "flex-end", gap: 6 }}>
                         <button className="btn btn-blue btn-xs" onClick={handleExportPdf} disabled={exporting}>
                             {exporting ? "Exporting\u2026" : ICO_PAGE + " Export PDF"}
                         </button>
+                        <button className="btn btn-green btn-xs" onClick={handleExportXls} disabled={exporting}>
+                            {exporting ? "Exporting\u2026" : ICO_XLS + " Export XLS"}
+                        </button>
                     </div>
+                    {exporting && (
+                        <div className="export-progress-wrap">
+                            <div className="export-progress-track">
+                                <div className="export-progress-fill" style={{ width: exportProgress + "%" }} />
+                            </div>
+                            <div className="export-progress-label">{exportProgress}%</div>
+                        </div>
+                    )}
 
                     {selectedCards.length === 0
                         ? <p style={{ textAlign: "center", color: "var(--text-dim)", padding: "20px 0" }}>No cards selected</p>

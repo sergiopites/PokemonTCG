@@ -13,6 +13,7 @@ import UpdateCollection from "./pages/UpdateCollection";
 import UpdateDeck from "./pages/UpdateDeck";
 import SearchCard from "./pages/SearchCard";
 import ScanCard from "./pages/ScanCard";
+import About from "./pages/About";
 
 function PlaceholderPage({ title }) {
     return (
@@ -45,7 +46,7 @@ export default function App() {
                     <Route path="updatecollection" element={<UpdateCollection />} />
                     <Route path="updatedeck" element={<UpdateDeck />} />
                     <Route path="accessories" element={<PlaceholderPage title="Accessories" />} />
-                    <Route path="about" element={<PlaceholderPage title="About" />} />
+                    <Route path="about" element={<About />} />
 
                     <Route path="savecards" element={<SaveCards />} />
                     <Route path="savesets" element={<SaveSets />} />

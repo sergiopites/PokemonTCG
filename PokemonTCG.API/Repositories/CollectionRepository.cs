@@ -123,7 +123,13 @@ namespace PokemonTCG.API.Repositories
                         Number = cc.Card?.Number,
                         SetName = cc.Card?.Set?.Name,
                         SetId = cc.Card?.SetId,
-                        Ptcgocode = cc.Card?.Set?.PtcgoCode
+                        Ptcgocode = cc.Card?.Set?.PtcgoCode,
+                        Type = cc.Card?.Types,
+                        Rarity = cc.Card?.Rarity,
+                        Artist = cc.Card?.Artist,
+                        HP = cc.Card?.Hp,
+                        EvolvesFrom = cc.Card?.EvolvesFrom,
+                        EvolvesTo = cc.Card?.EvolvesTo
                     }).ToList()
                 };
             }

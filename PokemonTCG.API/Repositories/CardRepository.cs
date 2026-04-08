@@ -172,7 +172,15 @@ namespace PokemonTCG.API.Repositories
                 .Include(c => c.CardImage);
 
             if (!string.IsNullOrWhiteSpace(name))
-                query = query.Where(c => EF.Functions.Like(c.Name, $"%{name}%"));
+            {
+                var escapedName = name
+                    .Replace("[", "[[]")
+                    .Replace("%", "[%]")
+                    .Replace("_", "[_]");
+                var pattern = $"%{escapedName}%";
+                query = query.Where(c =>
+                    EF.Functions.Like(EF.Functions.Collate(c.Name, "Latin1_General_CI_AI"), pattern));
+            }
 
             if (!string.IsNullOrWhiteSpace(setId))
                 query = query.Where(c => c.Set.SetId == setId);
@@ -214,6 +222,8 @@ namespace PokemonTCG.API.Repositories
                     Type = c.Types,
                     Rarity = c.Rarity,
                     Number = c.Number,
+                    Artist = c.Artist,
+                    HP = c.Hp,
                     EvolvesFrom = c.EvolvesFrom,
                     EvolvesTo = c.EvolvesTo
                 })

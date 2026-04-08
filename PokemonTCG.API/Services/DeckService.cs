@@ -440,6 +440,9 @@ namespace PokemonTCG.API.Services
                     Supertype = c.Supertype,
                     Number = c.Number,
                     Ptcgocode = c.Ptcgocode,
+                    Rarity = c.Rarity,
+                    Artist = c.Artist,
+                    HP = c.HP,
                     EvolvesFrom = c.EvolvesFrom,
                     EvolvesTo = c.EvolvesTo
                 }).ToList()

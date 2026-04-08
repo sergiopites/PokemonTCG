@@ -117,5 +117,101 @@ namespace PokemonTCG.Test.Controllers
             var statusResult = Assert.IsType<ObjectResult>(result);
             Assert.Equal(500, statusResult.StatusCode);
         }
+
+        [Fact]
+        public async Task ScanCard_ReturnsOk_WhenCardsFound()
+        {
+            _mockScanner.Setup(s => s.ExtractCardDataFromImageAsync(It.IsAny<byte[]>()))
+                .ReturnsAsync(new ScannedCardData { Name = "Pikachu", Number = "25" });
+
+            var items = new List<CardDetailDTO> { new() { CardId = "xy1-25", Name = "Pikachu" } };
+            _mockCardService.Setup(s => s.SearchCardsAsync(
+                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
+                    It.IsAny<int>(), It.IsAny<string>()))
+                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = items, TotalCount = 1 });
+
+            var result = await _controller.ScanCard(new ScanRequest { ImageBase64 = "AAAA" });
+
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var response = Assert.IsType<ScanResponse>(okResult.Value);
+            Assert.Contains("Found", response.Message);
+            Assert.NotNull(response.Cards);
+            Assert.NotNull(response.ScannedData);
+            Assert.Equal("Pikachu", response.ScannedData!.Name);
+        }
+
+        [Fact]
+        public async Task ScanCard_FallsBackToNameOnly_WhenFirstSearchReturnsEmpty()
+        {
+            _mockScanner.Setup(s => s.ExtractCardDataFromImageAsync(It.IsAny<byte[]>()))
+                .ReturnsAsync(new ScannedCardData { Name = "Charizard", Number = "4", Supertype = "Pok\u00e9mon" });
+
+            int callCount = 0;
+            _mockCardService.Setup(s => s.SearchCardsAsync(
+                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
+                    It.IsAny<int>(), It.IsAny<string>()))
+                .ReturnsAsync(() =>
+                {
+                    callCount++;
+                    if (callCount == 1)
+                        return new PagedResult<CardDetailDTO> { Items = new List<CardDetailDTO>(), TotalCount = 0 };
+                    return new PagedResult<CardDetailDTO>
+                    {
+                        Items = new List<CardDetailDTO> { new() { CardId = "base1-4", Name = "Charizard" } },
+                        TotalCount = 1
+                    };
+                });
+
+            var result = await _controller.ScanCard(new ScanRequest { ImageBase64 = "AAAA" });
+
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var response = Assert.IsType<ScanResponse>(okResult.Value);
+            Assert.Equal(2, callCount);
+            Assert.Contains("Found", response.Message);
+        }
+
+        [Fact]
+        public async Task ScanCard_ReturnsOk_WhenOnlyNameDetected()
+        {
+            _mockScanner.Setup(s => s.ExtractCardDataFromImageAsync(It.IsAny<byte[]>()))
+                .ReturnsAsync(new ScannedCardData { Name = "Mewtwo", Number = "" });
+
+            _mockCardService.Setup(s => s.SearchCardsAsync(
+                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
+                    It.IsAny<int>(), It.IsAny<string>()))
+                .ReturnsAsync(new PagedResult<CardDetailDTO>
+                {
+                    Items = new List<CardDetailDTO> { new() { CardId = "base1-10", Name = "Mewtwo" } },
+                    TotalCount = 1
+                });
+
+            var result = await _controller.ScanCard(new ScanRequest { ImageBase64 = "AAAA" });
+
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var response = Assert.IsType<ScanResponse>(okResult.Value);
+            Assert.Contains("Found", response.Message);
+        }
+
+        [Fact]
+        public async Task ScanCard_ReturnsOk_WhenOnlyNumberDetected()
+        {
+            _mockScanner.Setup(s => s.ExtractCardDataFromImageAsync(It.IsAny<byte[]>()))
+                .ReturnsAsync(new ScannedCardData { Name = "", Number = "42" });
+
+            _mockCardService.Setup(s => s.SearchCardsAsync(
+                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
+                    It.IsAny<int>(), It.IsAny<string>()))
+                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = new List<CardDetailDTO>(), TotalCount = 0 });
+
+            var result = await _controller.ScanCard(new ScanRequest { ImageBase64 = "AAAA" });
+
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var response = Assert.IsType<ScanResponse>(okResult.Value);
+            Assert.Contains("No cards found", response.Message);
+        }
     }
 }

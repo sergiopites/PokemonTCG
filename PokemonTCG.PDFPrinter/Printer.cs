@@ -92,12 +92,14 @@ namespace PokemonTCG.Printer
                 throw new Exception($"The file {file} already exists");
             }
         }
-        public async Task<byte[]> SaveImagesToPdfAsync(List<string> imageUrls, string fileName)
+        public async Task<byte[]> SaveImagesToPdfAsync(List<string> imageUrls, string fileName, IProgress<int> progress = null)
         {
             if (imageUrls == null || imageUrls.Count == 0)
                 throw new ArgumentException("Image URLs cannot be empty.");
 
             using var document = new PdfDocument();
+            int processed = 0;
+            int total = imageUrls.Count;
 
             foreach (var rawUrl in imageUrls)
             {
@@ -146,6 +148,9 @@ namespace PokemonTCG.Printer
 
                 using var gfx = XGraphics.FromPdfPage(page);
                 gfx.DrawImage(img, 0, 0, CardWidth, CardHeight);
+
+                processed++;
+                progress?.Report(total > 0 ? (int)(processed * 100.0 / total) : 0);
             }
 
             if (document.PageCount == 0)
@@ -155,7 +160,7 @@ namespace PokemonTCG.Printer
             document.Save(stream, false);
             return stream.ToArray();
         }
-        public async Task<byte[]> SaveDeckImagesToPdfAsync(List<string> imageUrls, string fileName)
+        public async Task<byte[]> SaveDeckImagesToPdfAsync(List<string> imageUrls, string fileName, IProgress<int> progress = null)
         {
             if (imageUrls == null || imageUrls.Count == 0)
                 throw new ArgumentException("Image URLs cannot be empty.");
@@ -174,13 +179,15 @@ namespace PokemonTCG.Printer
             double cardHeight = availableHeight / rows;
 
             int index = 0;
+            int processed = 0;
+            int total = imageUrls.Count;
             XGraphics gfx = null;
             PdfPage page = null;
 
             foreach (var rawUrl in imageUrls)
             {
                 var url = rawUrl?.Trim();
-                if (string.IsNullOrEmpty(url)) continue;
+                if (string.IsNullOrEmpty(url)) { processed++; continue; }
 
                 _logger?.LogInformation("Trying to download: {Url}", url);
 
@@ -191,7 +198,7 @@ namespace PokemonTCG.Printer
                 }
 
                 byte[] imageBytes;
-                                
+
                 try
                 {
                     if (validatedUri.Scheme.ToLower() == "file")
@@ -221,6 +228,7 @@ namespace PokemonTCG.Printer
 
                 if (index % (cols * rows) == 0)
                 {
+                    gfx?.Dispose();
                     page = document.AddPage();
                     page.Width = pageWidth;
                     page.Height = pageHeight;
@@ -236,7 +244,11 @@ namespace PokemonTCG.Printer
 
                 gfx.DrawImage(img, x, y, cardWidth, cardHeight);
                 index++;
+                processed++;
+                progress?.Report(total > 0 ? (int)(processed * 100.0 / total) : 0);
             }
+
+            gfx?.Dispose();
 
             if (document.PageCount == 0)
                 throw new Exception("No page was generated: all downloads failed.");

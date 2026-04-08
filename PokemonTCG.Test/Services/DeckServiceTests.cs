@@ -226,6 +226,93 @@ namespace PokemonTCG.Test.Services
             Assert.Null(result);
         }
 
+        // ?? GenerateAutoDeckAsync ??????????????????????????????????
+
+        [Fact]
+        public async Task GenerateAutoDeckAsync_Throws_WhenNoPokemonCards()
+        {
+            _cardRepo.Setup(r => r.SearchCardsAsync(null, null, null, "Pokémon", null, null, null, 1, 2000, null))
+                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = new List<CardDetailDTO>(), TotalCount = 0 });
+            _cardRepo.Setup(r => r.SearchCardsAsync(null, null, null, "Trainer", null, null, null, 1, 2000, null))
+                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = new List<CardDetailDTO>(), TotalCount = 0 });
+            _cardRepo.Setup(r => r.SearchCardsAsync(null, null, null, "Energy", null, null, null, 1, 1000, null))
+                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = new List<CardDetailDTO>(), TotalCount = 0 });
+
+            await Assert.ThrowsAsync<Exception>(() => CreateService().GenerateAutoDeckAsync());
+        }
+
+        [Fact]
+        public async Task GenerateAutoDeckAsync_ReturnsExactly60Cards()
+        {
+            var pokemon = Enumerable.Range(1, 50).Select(i => new CardDetailDTO
+            {
+                CardId = $"poke-{i}", Name = $"Pokemon{i}", Supertype = "Pokémon",
+                Subtype = "Basic", Type = "Fire", SetId = "set1", Number = i.ToString()
+            }).ToList();
+
+            var trainers = Enumerable.Range(1, 50).Select(i => new CardDetailDTO
+            {
+                CardId = $"trainer-{i}", Name = $"Trainer{i}", Supertype = "Trainer",
+                Subtype = "Item", SetId = "set1", Number = i.ToString()
+            }).ToList();
+
+            var energies = Enumerable.Range(1, 20).Select(i => new CardDetailDTO
+            {
+                CardId = $"energy-{i}", Name = $"Fire Energy", Supertype = "Energy",
+                Subtype = "Basic", Type = "Fire", SetId = "set1", Number = i.ToString()
+            }).ToList();
+
+            _cardRepo.Setup(r => r.SearchCardsAsync(null, null, null, "Pokémon", null, null, null, 1, 2000, null))
+                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = pokemon, TotalCount = pokemon.Count });
+            _cardRepo.Setup(r => r.SearchCardsAsync(null, null, null, "Trainer", null, null, null, 1, 2000, null))
+                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = trainers, TotalCount = trainers.Count });
+            _cardRepo.Setup(r => r.SearchCardsAsync(null, null, null, "Energy", null, null, null, 1, 1000, null))
+                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = energies, TotalCount = energies.Count });
+
+            var result = await CreateService().GenerateAutoDeckAsync();
+
+            Assert.Equal(60, result.Total);
+            Assert.Equal(60, result.Cards.Count);
+            Assert.NotNull(result.DominantType);
+            Assert.NotNull(result.DeckName);
+        }
+
+        [Fact]
+        public async Task GenerateAutoDeckAsync_HasAtLeastOnePokemonTrainerAndEnergy()
+        {
+            var pokemon = Enumerable.Range(1, 50).Select(i => new CardDetailDTO
+            {
+                CardId = $"poke-{i}", Name = $"Pokemon{i}", Supertype = "Pokémon",
+                Subtype = "Basic", Type = "Water", SetId = "set1", Number = i.ToString()
+            }).ToList();
+
+            var trainers = Enumerable.Range(1, 50).Select(i => new CardDetailDTO
+            {
+                CardId = $"trainer-{i}", Name = $"Trainer{i}", Supertype = "Trainer",
+                Subtype = "Supporter", SetId = "set1", Number = i.ToString()
+            }).ToList();
+
+            var energies = Enumerable.Range(1, 20).Select(i => new CardDetailDTO
+            {
+                CardId = $"energy-{i}", Name = $"Water Energy", Supertype = "Energy",
+                Subtype = "Basic", Type = "Water", SetId = "set1", Number = i.ToString()
+            }).ToList();
+
+            _cardRepo.Setup(r => r.SearchCardsAsync(null, null, null, "Pokémon", null, null, null, 1, 2000, null))
+                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = pokemon, TotalCount = pokemon.Count });
+            _cardRepo.Setup(r => r.SearchCardsAsync(null, null, null, "Trainer", null, null, null, 1, 2000, null))
+                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = trainers, TotalCount = trainers.Count });
+            _cardRepo.Setup(r => r.SearchCardsAsync(null, null, null, "Energy", null, null, null, 1, 1000, null))
+                .ReturnsAsync(new PagedResult<CardDetailDTO> { Items = energies, TotalCount = energies.Count });
+
+            var result = await CreateService().GenerateAutoDeckAsync();
+
+            Assert.True(result.Pokémon > 0, "Should have at least 1 Pokémon");
+            Assert.True(result.Trainers > 0, "Should have at least 1 Trainer");
+            Assert.True(result.Energy > 0, "Should have at least 1 Energy");
+            Assert.Equal(60, result.Pokémon + result.Trainers + result.Energy);
+        }
+
         private static DeckRequest Build60CardRequest(string name, string description)
         {
             return new DeckRequest

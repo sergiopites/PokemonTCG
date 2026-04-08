@@ -25,6 +25,9 @@ namespace PokemonTCG.API.Responses
             public string Supertype { get; set; }
             public string Number { get; set; }
             public string Ptcgocode { get; set; }
+            public string Rarity { get; set; }
+            public string Artist { get; set; }
+            public int? HP { get; set; }
             public string EvolvesFrom { get; set; }
             public string EvolvesTo { get; set; }
         }
