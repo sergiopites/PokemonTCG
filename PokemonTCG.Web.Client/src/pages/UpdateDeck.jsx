@@ -205,6 +205,7 @@ export default function UpdateDeck() {
 
     const handleImportFromText = async () => {
         if (!importText.trim()) { alert(ICO_WARN + " Paste the deck text before importing."); return; }
+        if (selectedCards.length > 0 && !confirm(ICO_WARN + " This will replace the current deck. Continue?")) return;
         setLoading(true);
         try {
             const lines = importText.split("\n").map(l => l.trim()).filter(l => l && !/^pok\u00e9mon|trainer|energies|cards totals/i.test(l));
@@ -226,8 +227,8 @@ export default function UpdateDeck() {
                 } catch (err) { notFound.push(card); }
             }
             if (!found.length) { alert(ICO_WARN + " No cards found."); setLoading(false); return; }
-            setSelectedCards(prev => {
-                const grouped = {}; for (const c of prev) grouped[c.cardId] = { ...c };
+            setSelectedCards(() => {
+                const grouped = {};
                 for (const card of found) {
                     const id = card.cardId ?? card.id ?? (card.name + "-" + (card.ptcgocode ?? card.number));
                     const isEnergy = (card.supertype ?? "").toLowerCase() === "energy";
