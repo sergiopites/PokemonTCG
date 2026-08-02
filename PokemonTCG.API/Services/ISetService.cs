@@ -10,6 +10,7 @@ namespace PokemonTCG.API.Services
         Task<List<SetDetailResponse>> GetSetByNameAsync(string name);
         Task<List<SetDetailResponse>> GetSetBySerieAsync(string series);
         Task SaveSetAsync(CancellationToken cancellationToken);
+        Task SaveSetAsync(Func<string, Task> log, CancellationToken cancellationToken);
         Task<List<Models.Set>> GetAllPokemonSetsAsync();
     }
 }

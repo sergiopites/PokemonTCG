@@ -25,15 +25,28 @@ namespace PokemonTCG.API.Services
         }
         public async Task SaveSetAsync(CancellationToken cancellationToken)
         {
+            await SaveSetAsync(null, cancellationToken);
+        }
+
+        public async Task SaveSetAsync(Func<string, Task> log, CancellationToken cancellationToken)
+        {
             try
-            {                
+            {
+                if (log != null) await log("Fetching sets from external API...");
                 var externalSets = await GetAllPokemonSetsAsync();
-                
+
                 if (externalSets == null || !externalSets.Any())
+                {
+                    if (log != null) await log("No sets found from external API.");
                     return;
+                }
+
+                if (log != null) await log($"Found {externalSets.Count} sets. Starting sync...");
+                int count = 0;
 
                 foreach (var s in externalSets)
                 {
+                    count++;
                     var setImage = new SetImage()
                     {
                         Logo = s.Images?.Logo,
@@ -66,11 +79,15 @@ namespace PokemonTCG.API.Services
                     };
 
                     await _setRepository.SaveSetAsync(set, cancellationToken);
+                    if (log != null) await log($"[{count}/{externalSets.Count}] Saved: {s.Name ?? s.SetId}");
                 }
+
+                if (log != null) await log($"Sync complete! {count} sets saved.");
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Error saving sets: {ex.Message}");
+                if (log != null) await log($"ERROR: {ex.Message}");
             }
 
         }

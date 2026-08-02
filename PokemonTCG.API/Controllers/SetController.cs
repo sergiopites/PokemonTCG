@@ -21,6 +21,32 @@ namespace PokemonTCG.API.Controllers
             return Ok();
         }
 
+        [HttpPost("create/progress")]
+        public async Task SaveSetWithProgress(CancellationToken cancellationToken)
+        {
+            Response.ContentType = "text/event-stream";
+            Response.Headers.Append("Cache-Control", "no-cache");
+            Response.Headers.Append("X-Accel-Buffering", "no");
+
+            try
+            {
+                await _setService.SaveSetAsync(async (msg) =>
+                {
+                    var data = $"data: {{\"log\":\"{msg.Replace("\"", "'")}\"}}\n\n";
+                    await Response.WriteAsync(data);
+                    await Response.Body.FlushAsync();
+                }, cancellationToken);
+
+                await Response.WriteAsync("data: {\"done\":true}\n\n");
+                await Response.Body.FlushAsync();
+            }
+            catch (Exception ex)
+            {
+                await Response.WriteAsync($"data: {{\"error\":\"{ex.Message.Replace("\"", "'")}\"}}\n\n");
+                await Response.Body.FlushAsync();
+            }
+        }
+
         [HttpGet("all")]
         public async Task<ActionResult<List<SetDetailResponse>>> GetAllSets()
         {

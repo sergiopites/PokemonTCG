@@ -160,15 +160,28 @@ namespace PokemonTCG.API.Services
         }
         public async Task SaveCardsAsync(CancellationToken cancellationToken)
         {
+            await SaveCardsAsync(null, cancellationToken);
+        }
+
+        public async Task SaveCardsAsync(Func<string, Task> log, CancellationToken cancellationToken)
+        {
             try
             {
                 var setList = await _setRepository.GetAllSetsAsync();
+                if (log != null) await log($"Found {setList.Count} sets. Starting card sync...");
+                int setCount = 0;
 
                 foreach (var set in setList)
                 {
+                    setCount++;
                     var externalCards = await GetPokemonCardBySetIdAsync(set.SetId);
                     if (externalCards is not { Count: > 0 })
+                    {
+                        if (log != null) await log($"[{setCount}/{setList.Count}] {set.Name ?? set.SetId}: no cards found, skipping.");
                         continue;
+                    }
+
+                    if (log != null) await log($"[{setCount}/{setList.Count}] {set.Name ?? set.SetId}: saving {externalCards.Count} cards...");
 
                     foreach (var c in externalCards)
                     {
@@ -220,10 +233,13 @@ namespace PokemonTCG.API.Services
                         }
                     }
                 }
+
+                if (log != null) await log($"Sync complete! Cards from {setList.Count} sets processed.");
             }
             catch (Exception ex)
             {
                 _logger.LogError("Error saving cards: {Message}", ex.Message);
+                if (log != null) await log($"ERROR: {ex.Message}");
             }
         }
 

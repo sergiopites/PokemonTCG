@@ -22,5 +22,6 @@ namespace PokemonTCG.API.Services
         Task<List<CardDetailResponse>> GetDistinctSubtypesAsync();
         Task<List<CardDetailResponse>> GetDistinctSupertypesAsync();
         Task SaveCardsAsync(CancellationToken cancellationToken);
+        Task SaveCardsAsync(Func<string, Task> log, CancellationToken cancellationToken);
     }
 }

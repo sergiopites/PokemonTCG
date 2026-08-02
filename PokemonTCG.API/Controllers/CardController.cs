@@ -71,5 +71,31 @@ namespace PokemonTCG.API.Controllers
             await _cardService.SaveCardsAsync(cancellationToken);
             return Ok();
         }
+
+        [HttpPost("addpokemoncards/progress")]
+        public async Task SavePokemonCardsWithProgress(CancellationToken cancellationToken)
+        {
+            Response.ContentType = "text/event-stream";
+            Response.Headers.Append("Cache-Control", "no-cache");
+            Response.Headers.Append("X-Accel-Buffering", "no");
+
+            try
+            {
+                await _cardService.SaveCardsAsync(async (msg) =>
+                {
+                    var data = $"data: {{\"log\":\"{msg.Replace("\"", "'")}\"}}\n\n";
+                    await Response.WriteAsync(data);
+                    await Response.Body.FlushAsync();
+                }, cancellationToken);
+
+                await Response.WriteAsync("data: {\"done\":true}\n\n");
+                await Response.Body.FlushAsync();
+            }
+            catch (Exception ex)
+            {
+                await Response.WriteAsync($"data: {{\"error\":\"{ex.Message.Replace("\"", "'")}\"}}\n\n");
+                await Response.Body.FlushAsync();
+            }
+        }
     }
 }
