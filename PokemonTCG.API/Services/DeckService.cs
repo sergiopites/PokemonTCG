@@ -422,9 +422,9 @@ namespace PokemonTCG.API.Services
             {
                 DeckName = $"{dominantPokemonName} - {dominantType}",
                 DominantType = dominantType,
-                PowerPokémon = powerNames,
+                PowerPokemon = powerNames,
                 Total = combined.Count,
-                Pokémon = finalPokemon.Count,
+                Pokemon = finalPokemon.Count,
                 Trainers = finalTrainers.Count,
                 Energy = finalEnergies.Count,
                 Cards = combined.Select(c => new DeckDetailResponse.DeckAutoCardDTO

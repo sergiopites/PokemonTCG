@@ -6,9 +6,9 @@ namespace PokemonTCG.API.Responses
     {
         public string DeckName { get; set; }
         public string DominantType { get; set; }
-        public List<string> PowerPokémon { get; set; } = new();
+        public List<string> PowerPokemon { get; set; } = new();
         public int Total { get; set; }
-        public int Pokémon { get; set; }
+        public int Pokemon { get; set; }
         public int Trainers { get; set; }
         public int Energy { get; set; }
         public List<DeckAutoCardDTO> Cards { get; set; } = new();

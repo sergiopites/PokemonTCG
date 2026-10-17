@@ -10,7 +10,7 @@ services:
       - "8080:8080"
     environment:
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Server=db;Database=PokemonTCG;User=sa;Password=Admin2025!;
+      - ConnectionStrings__DefaultConnection=Server=db,1433;Database=PokemonTCG;User Id=sa;Password=Admin2025!;Encrypt=True;TrustServerCertificate=True;
     depends_on:
       - db
 
