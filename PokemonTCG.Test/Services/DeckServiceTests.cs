@@ -307,10 +307,10 @@ namespace PokemonTCG.Test.Services
 
             var result = await CreateService().GenerateAutoDeckAsync();
 
-            Assert.True(result.Pokémon > 0, "Should have at least 1 Pokémon");
+            Assert.True(result.Pokemon > 0, "Should have at least 1 Pokémon");
             Assert.True(result.Trainers > 0, "Should have at least 1 Trainer");
             Assert.True(result.Energy > 0, "Should have at least 1 Energy");
-            Assert.Equal(60, result.Pokémon + result.Trainers + result.Energy);
+            Assert.Equal(60, result.Pokemon + result.Trainers + result.Energy);
         }
 
         private static DeckRequest Build60CardRequest(string name, string description)

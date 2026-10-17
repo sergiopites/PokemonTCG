@@ -36,6 +36,9 @@ export default function CreateDeck() {
     const [backImagePath, setBackImagePath] = useState("");
     const [exporting, setExporting] = useState(false);
     const [exportProgress, setExportProgress] = useState(0);
+    const [validationResult, setValidationResult] = useState(null);
+
+    useEffect(() => { setValidationResult(null); }, [selectedCards]);
 
     const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -83,6 +86,38 @@ export default function CreateDeck() {
     useEffect(() => { fetch("/config.json").then(r => r.json()).then(c => setBackImagePath(c.backImagePath)).catch(() => setBackImagePath("")); }, []);
 
     const getTotalSelected = (arr) => arr.reduce((s, c) => s + (Number(c.quantity) || 0), 0);
+    const normalizeRuleValue = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+    const validateDeck = (deck) => {
+        const issues = [];
+        const total = getTotalSelected(deck);
+        if (total !== 60) issues.push("A deck must contain exactly 60 cards (currently " + total + ").");
+
+        const hasBasicPokemon = deck.some(c =>
+            normalizeRuleValue(c.supertype) === "pokemon" &&
+            normalizeRuleValue(c.subtype).split(/[,/\s]+/).includes("basic") &&
+            Number(c.quantity) > 0
+        );
+        if (!hasBasicPokemon) issues.push("A deck must contain at least one Basic Pokémon.");
+
+        const copiesByName = new Map();
+        for (const card of deck) {
+            const isBasicEnergy = normalizeRuleValue(card.supertype) === "energy" &&
+                normalizeRuleValue(card.subtype).split(/[,/\s]+/).includes("basic");
+            if (isBasicEnergy) continue;
+
+            const key = normalizeRuleValue((card.name || "Unknown").trim());
+            const entry = copiesByName.get(key) || { name: card.name || "Unknown", quantity: 0 };
+            entry.quantity += Number(card.quantity) || 0;
+            copiesByName.set(key, entry);
+        }
+        for (const entry of copiesByName.values()) {
+            if (entry.quantity > 4) issues.push("Only four copies of “" + entry.name + "” are allowed (currently " + entry.quantity + ").");
+        }
+        return issues;
+    };
+
+    const handleValidateDeck = () => setValidationResult(validateDeck(selectedCards));
 
     const toggleCard = (cardOrId) => {
         const id = typeof cardOrId === "string" ? cardOrId : cardOrId.cardId;
@@ -109,9 +144,9 @@ export default function CreateDeck() {
 
     const handleSubmit = async () => {
         if (!name.trim()) { setMessage(ICO_WARN + " Please enter a deck name."); return; }
-        if (!selectedCards.length) { setMessage(ICO_WARN + " Select at least 60 cards."); return; }
-        const total = getTotalSelected(selectedCards);
-        if (total !== 60) { setMessage(ICO_WARN + " Deck must have exactly 60 cards. Current: " + total); return; }
+        const issues = validateDeck(selectedCards);
+        setValidationResult(issues);
+        if (issues.length) { setMessage(ICO_WARN + " Deck does not comply with the basic deck-building rules."); return; }
         try {
             const r = await fetch(API_URL + "/api/deck/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ deckId: null, name, description, cards: selectedCards.map(c => ({ cardId: String(c.cardId), quantity: Number(c.quantity), ptcgocode: String(c.ptcgocode ?? ""), imageLarge: String(c.imageLarge), supertype: String(c.supertype ?? ""), name: String(c.name ?? "") })) }) });
             if (!r.ok) throw new Error(await r.text());
@@ -290,9 +325,17 @@ export default function CreateDeck() {
                             <button className="btn btn-outline btn-sm" onClick={clearSelection}>Clear</button>
                             <button className="btn btn-blue btn-sm" onClick={handleAutoDeck} disabled={loading}>{loading ? "Building\u2026" : ICO_DICE + " AutoDeck"}</button>
                             <button className="btn btn-outline btn-sm" onClick={() => setShowImportModal(true)}>{ICO_CLIP} Import</button>
+                            <button className="btn btn-outline btn-sm" onClick={handleValidateDeck}>{ICO_OK} Validate Rules</button>
                             <button className="btn btn-green btn-sm" onClick={handleSubmit}>{ICO_SAVE} Save Deck</button>
                         </div>
                         {message && <p className={msgClass} style={{ marginTop: 10 }}>{message}</p>}
+                        {validationResult && (
+                            <div className={validationResult.length ? "msg-warning" : "msg-success"} style={{ marginTop: 10 }}>
+                                <strong>{validationResult.length ? ICO_FAIL + " Deck needs changes:" : ICO_OK + " Deck meets the basic construction rules."}</strong>
+                                {validationResult.length > 0 && <ul>{validationResult.map((issue, index) => <li key={index}>{issue}</li>)}</ul>}
+                                <p>Format legality, banned cards, and card-text exceptions are not checked.</p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Filters */}
