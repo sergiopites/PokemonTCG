@@ -734,5 +734,55 @@ namespace PokemonTCG.Test.Repositories
             Assert.Single(result);
             Assert.Null(result[0].ImageLarge);
         }
+
+        // ? CardExistsByExternalIdAsync
+
+        [Fact]
+        public async Task CardExistsByExternalIdAsync_ExistingCard_ReturnsTrue()
+        {
+            var db = CreateDb(nameof(CardExistsByExternalIdAsync_ExistingCard_ReturnsTrue));
+            await SeedFullCard(db, "pika-1", "pika-ext-1");
+
+            var repo = CreateRepo(db);
+            var result = await repo.CardExistsByExternalIdAsync("pika-ext-1", CancellationToken.None);
+
+            Assert.True(result);
+        }
+
+        [Fact]
+        public async Task CardExistsByExternalIdAsync_NonExistentCard_ReturnsFalse()
+        {
+            var db = CreateDb(nameof(CardExistsByExternalIdAsync_NonExistentCard_ReturnsFalse));
+            await SeedFullCard(db, "pika-1", "pika-ext-1");
+
+            var repo = CreateRepo(db);
+            var result = await repo.CardExistsByExternalIdAsync("no-such-external-id", CancellationToken.None);
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task CardExistsByExternalIdAsync_EmptyDatabase_ReturnsFalse()
+        {
+            var repo = CreateRepo(nameof(CardExistsByExternalIdAsync_EmptyDatabase_ReturnsFalse));
+
+            var result = await repo.CardExistsByExternalIdAsync("any-external-id", CancellationToken.None);
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task CardExistsByExternalIdAsync_MultipleCards_FindsCorrectOne()
+        {
+            var db = CreateDb(nameof(CardExistsByExternalIdAsync_MultipleCards_FindsCorrectOne));
+            await SeedFullCard(db, "card-1", "ext-1");
+            await SeedFullCard(db, "card-2", "ext-2");
+            await SeedFullCard(db, "card-3", "ext-3");
+
+            var repo = CreateRepo(db);
+            var result = await repo.CardExistsByExternalIdAsync("ext-2", CancellationToken.None);
+
+            Assert.True(result);
+        }
     }
 }

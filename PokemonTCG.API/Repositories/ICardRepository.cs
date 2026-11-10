@@ -16,5 +16,6 @@ namespace PokemonTCG.API.Repositories
         Task<IEnumerable<string>> GetDistinctTypesAsync();
         Task<IEnumerable<string>> GetDistinctSupertypesAsync();
         Task<IEnumerable<string>> GetDistinctSubtypesAsync();
+        Task<bool> CardExistsByExternalIdAsync(string externalId, CancellationToken cancellationToken);
     }
 }

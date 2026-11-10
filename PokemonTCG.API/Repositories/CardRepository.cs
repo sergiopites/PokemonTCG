@@ -522,5 +522,11 @@ namespace PokemonTCG.API.Repositories
             foreach (var rem in toRemove)
                 existingCollection.Remove(rem);
         }
+
+        public async Task<bool> CardExistsByExternalIdAsync(string externalId, CancellationToken cancellationToken)
+        {
+            return await _context.Cards
+                .AnyAsync(c => c.ExternalId == externalId, cancellationToken);
+        }
     }
 }

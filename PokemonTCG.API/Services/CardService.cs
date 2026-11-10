@@ -181,12 +181,23 @@ namespace PokemonTCG.API.Services
                         continue;
                     }
 
-                    if (log != null) await log($"[{setCount}/{setList.Count}] {set.Name ?? set.SetId}: saving {externalCards.Count} cards...");
+                    if (log != null) await log($"[{setCount}/{setList.Count}] {set.Name ?? set.SetId}: processing {externalCards.Count} cards...");
+
+                    int skippedCount = 0;
+                    int savedCount = 0;
 
                     foreach (var c in externalCards)
                     {
                         try
                         {
+                            // Check if card already exists
+                            bool cardExists = await _cardRepository.CardExistsByExternalIdAsync(c.Id, cancellationToken);
+                            if (cardExists)
+                            {
+                                skippedCount++;
+                                continue;
+                            }
+
                             var cardImage = await _cardImageRepository.SaveImageCardAsync(
                                 MapCardImage(c), cancellationToken);
 
@@ -226,11 +237,17 @@ namespace PokemonTCG.API.Services
                             };
 
                             await _cardRepository.SaveCardAsync(card, cancellationToken);
+                            savedCount++;
                         }
                         catch (Exception cardEx)
                         {
                             _logger.LogError("Error saving card {CardId}: {Message}", c.Id, cardEx.Message);
                         }
+                    }
+
+                    if (log != null)
+                    {
+                        await log($"[{setCount}/{setList.Count}] {set.Name ?? set.SetId}: saved {savedCount} cards, skipped {skippedCount} existing cards.");
                     }
                 }
 
@@ -242,6 +259,7 @@ namespace PokemonTCG.API.Services
                 if (log != null) await log($"ERROR: {ex.Message}");
             }
         }
+
 
         private static CardImage MapCardImage(PokemonCard c) => new()
         {
